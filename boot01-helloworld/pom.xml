@@ -28,6 +28,8 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
     </dependencies>
+
+    <!-- 对于web程序直接打成jar包，在服务器上执行即可-->
     <build>
         <plugins>
             <plugin>
