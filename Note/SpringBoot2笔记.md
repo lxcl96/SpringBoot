@@ -526,51 +526,321 @@ public class MainApplication {
 public class Configuration {...}
 ```
 
-​		
+##### ④、@Conditional
+
+​	条件装配：满足@Conditional指定条件的，则进行组件注入
+
+![image-20220630094518376](.\img\image-20220630094518376.png)
+
+***条件注解标注在方法上：***
+
+`表示IOC容器满足条件时，才会执行这个方法。如：向容器中注入该bean`
+
+```java
+//以ConditionalOnBean为例，如果IOC容器中已经存在User对象且组件名为user01时，才进行注入【即满足 存在bean条件才执行】
+@ConditionalOnBean(value = User.class,name = "user01")
+@Bean
+//用方法名作为组件对象的id，返回类型就是组件类型
+public User user01() {
+    User user = new User("张三", 22);
+    user.setPet(getPet());
+    return user;
+}
+```
+
+***条件注解标注在类上：***
+
+`表示IOC容器满足条件时，才会执行该类下的所有注解方法。如：向容器中注入该配置类下的所有Bean方法对象`
+
+```java
+@org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+//如果IOC容器中 没有 名为ht且类型为Pet的对象/组件时，才会执行该配置类Configuration下的方法，自动向IOC容器中注入user01(ht被注释掉了，无法自动注入到IOC容器中)
+@ConditionalOnMissingBean(name = "ht",value = Pet.class)
+public class Configuration {
+
+
+    @Bean
+    //用方法名作为组件对象的id，返回类型就是组件类型
+    public User user01() {
+        User user = new User("张三", 22);
+        user.setPet(getPet());
+        return user;
+    }
+
+    //@Bean("ht")
+    public Pet getPet() {
+        return new Pet("核桃");
+    }
+}
+```
+
+#### 2.2、@ImportResource 原生Spring配置文件引入
+
+​	作用：将原始的Spring的xml配置文件引入到IOC容器中。
+
+​	步骤：只需要将此注解写在随便一个配置类上即可
+
+如：
+
+```xml
+<!-- SpringConfig.xml  -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="lisi" class="com.ly.boot.bean.User">
+        <property name="name" value="李四" />
+        <property name="age" value="33" />
+    </bean>
+</beans>
+```
+
+导入此Spring配置文件
+
+```java
+@Configuration
+@ImportResource({"classpath:spring/SpringConfig.xml"})//导入SpringConfig.xml
+public class AnnotationConfiguration {
+
+    //和这个效果一样
+//    @Bean("lisi")
+//    public User getUser() {
+//        return new User("李四",33);
+//    }
+}
+```
+
+测试
+
+```java
+@SpringBootApplication
+public class MainApplication {
+
+    public static void main(String[] args) {
+        //运行主程序  返回IOC容器，里面包含所有的bean对象
+    ConfigurableApplicationContext run = SpringApplication.run(MainApplication.class, args);
+        
+     //测试是否存在名为  lisi 的组件
+     boolean lisiExists = run.containsBean("lisi");
+     System.out.println("User用户lisi是否存在？" + lisiExists); //true
+    }
+}
+
+```
+
+#### 2.3、配置绑定
+
+​	如何使用Java读取到properties文件中的内容。并且把它封装到JavaBean中，以供随时使用。
+
+***普通Java方法：***
+
+```java
+//创建Properties对象
+//创建File文件流读取
+//遍历
+```
+
+***SpringBoot注解方法***
+
+##### ①、@Component + @ConfiguratonProperties 
+
+==注意此方法：的properties配置文件必须以application开头的文件。即application*.properties==
+
+***application.properties配置文件：***
+
+```properties
+# server.port=8888
+spring.servlet.multipart.max-file-size=1MB
+
+mycar.brand=BYD
+mycar.price=10000
+```
+
+***直接在Bean上配置该注解，会自动注入属性（该类必须先注册到IOC容器中）：***
+
+```java
+/**
+ * Car.java
+ * 只有容器中的组件才能使用这些注解方法所以必须加上@Component
+ */
+@Component
+//通过spring的属性自动注入，将properties文件中前缀开头的mycar.*类属性注入到IOC容器中Car对象的属性（该对象的名字默认是全类名）
+@ConfigurationProperties(prefix = "mycar")//前缀就是properties文件里的前缀
+public class Car {
+    private String brand;
+    private Integer price;
+    
+    ...
+}
+    
+```
+
+***通过属性自动注入，使用该Car对象***
+
+```java
+@RestController //@Response + @Controller
+public class HelloController {
+    @Autowired //通过spring的对象自动注入，将car对象注入到myCar
+    private Car myCar;
+
+    @RequestMapping("/car")
+    public Car getCar() {
+        return myCar;
+    }
+    @RequestMapping("/")
+    public String helloWorld() {
+        return "Hello Spring Boot!";
+    }
+}
+```
+
+***测试：***
+
+springBoot自动集成了json，所以自动转化为json对象了
+
+![image-20220630105144783](.\img\image-20220630105144783.png)
 
 
 
+##### ②、@EnableConfigurationProperties + @ConfigurationProperties
 
+==注意此方法：的properties配置文件必须以application开头的文件。即application*.properties==
 
+​	对于①中的第二种写法：
 
+​	***第一种写法：***
 
+​			`@Component +  @ConfigurationProperties` 均放在Car类上
 
+​	***第二种写法：***
 
+​			`@EnableConfigurationProperties ` 放在任意一个配置类上（使用了`@Configuration`标注的类）
 
+​			` @ConfigurationProperties` 放在实体类Bean对象上
 
+```java
+//AnnotationConfiguration.java 配置类
 
+@Configuration
+/**
+ * 两个作用：
+ *  1、开启Car配置绑定功能
+ *  2、把这个Car组件自动注册到容器中
+ */
+@EnableConfigurationProperties(Car.class) //需要制定要开启自动注入properties的类
+public class AnnotationConfiguration {
 
+}
+```
 
+```java
+/**
+ * Car.java
+ * 只有容器中的组件才能使用这些注解方法所以必须加上@Component
+ */
+//@Component 使用@EnableConfigurationProperties代替此注解
 
+//通过spring的属性自动注入，将properties文件中前缀开头的mycar.*类属性注入到IOC容器中Car对象的属性（该对象的名字默认是全类名）
+@ConfigurationProperties(prefix = "mycar")//前缀就是properties文件里的前缀
+public class Car {
+    private String brand;
+    private Integer price;
+    
+    ...
+}
+    
+```
 
+### 3、自动配置原理入门
 
+`@SpringBootApplication`由下面三个注解组成：
 
++ `@SpringBootConfiguration`
++ `@EnableAutoConfiguration`
++ `@ComponentScan`
 
+#### 3.1、引导加载自动配置类
 
+```java
+//SpringBootConfiguration.class （三个中标目配置类）
+package org.springframework.boot;
+...
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Configuration //配置类注解 说明@SpringBootApplication标注的类（主程序）其实也是一个配置类
+@Indexed
+public @interface SpringBootConfiguration {
+    @AliasFor(
+        annotation = Configuration.class
+    )
+    boolean proxyBeanMethods() default true;
+}
+```
 
+```java
+//@ComponentScan就是包扫描，它自定义了排除过虑器 （三个中开启包扫描）
 
+@ComponentScan(
+    excludeFilters = {@Filter(
+    type = FilterType.CUSTOM,
+    classes = {TypeExcludeFilter.class}
+), @Filter(
+    type = FilterType.CUSTOM,
+    classes = {AutoConfigurationExcludeFilter.class}
+)}
+```
 
+```java
+//EnableAutoConfiguration.class 三个中最重要
 
+package org.springframework.boot.autoconfigure;
+...
 
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@AutoConfigurationPackage //自动配置包 见下① 
+@Import({AutoConfigurationImportSelector.class}) //最重要的 见下②
+public @interface EnableAutoConfiguration {
+    String ENABLED_OVERRIDE_PROPERTY = "spring.boot.enableautoconfiguration";
 
+    Class<?>[] exclude() default {};
 
+    String[] excludeName() default {};
+}
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+> ① *** @EnableAutoConfiguration 内的 @AutoConfigurationPackage***
+>
+> ```java
+> package org.springframework.boot.autoconfigure;
+> ...
+> @Target({ElementType.TYPE})
+> @Retention(RetentionPolicy.RUNTIME)
+> @Documented
+> @Inherited
+> /*
+>  导入包Registrar，给容器中进行批量注册bean组件.
+>  批量注册的都是我们写的主程序（MainApplication.java）所在包下，及其子包下的所有被注解标注的类 即com.ly.boot下所有类
+>  */
+> @Import({AutoConfigurationPackages.Registrar.class}) 
+> public @interface AutoConfigurationPackage {
+>     String[] basePackages() default {};
+> 
+>     Class<?>[] basePackageClasses() default {};
+> }
+> ```
+>
+> 注册主程序所在包(包括子包)下所有组件导入/注册到IOC容器中
+>
+> ![image-20220630135056922](.\img\image-20220630135056922.png)
+>
+> ② *** @EnableAutoConfiguration 内的 @Import({AutoConfigurationImportSelector.class})*** 
+>
+> 
 
 
 

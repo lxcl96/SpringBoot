@@ -2,7 +2,10 @@ package com.ly.boot.config;
 
 import com.ly.boot.bean.Pet;
 import com.ly.boot.bean.User;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
 
@@ -35,8 +38,12 @@ import org.springframework.context.annotation.Scope;
  */
 @Import({User.class,NullPointerException.class}) //给容器中自动创建出这两个类型的组件、默认组件的名字就是全类名
 @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+@ConditionalOnMissingBean(name = "ht",value = Pet.class)
 public class Configuration { //该类本身也是一个组件，在IOC中可以取到
 
+
+    //以ConditionalOnBean为例，如果IOC容器中已经存在User对象且组件名为user01时，才进行注入【即满足 存在bean条件才执行】
+    @ConditionalOnBean(value = User.class,name = "user01")
     //@Scope("prototype")
     @Bean
     //用方法名作为组件对象的id，返回类型就是组件类型
@@ -50,7 +57,7 @@ public class Configuration { //该类本身也是一个组件，在IOC中可以�
     }
 
 
-    @Bean("ht")
+    //@Bean("ht")
     public Pet getPet() {
         return new Pet("核桃");
     }
