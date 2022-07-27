@@ -69,7 +69,7 @@
 
 #### 1.1、Maven设置
 
-设置Maven配置文杰settings.xml设置镜像和jdk版本
+设置Maven配置文件settings.xml设置镜像和jdk版本
 
 ```xml
 <!--settings.xml -->
@@ -277,11 +277,12 @@ java -jar xxx.jar
   官方说明：[Developing with Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/html/using.html#using.build-systems.starters)
 
   ```xml
+  <!--
   1、spring-boot-starter-* 就代表Spring官方某种场景
   2、只要引入starter，这个场景的所有常规需要的依赖都会自动引入
   3、*-spring-boot-starter为第三方提供的场景启动器
   4、所有场景启动器starter底层都会依赖spring-boot-starter，这是最基本的starter
-  如：pom.xml
+  如：pom.xml -->
   <dependencies>
       <dependency>
           <groupId>org.springframework.boot</groupId>
@@ -305,10 +306,10 @@ java -jar xxx.jar
   -->
   
   # 自己的pom.xml复写属性mysql.version，实现自定义版本
-  <profiles>
+  <properties>
       <mysql.version>5.1.31</mysql.version>
       ...
-  </profiles>
+  </properties>
   
   <dependency>
       <groupId>mysql</groupId>
@@ -341,13 +342,16 @@ java -jar xxx.jar
   >
   > 自动配置好springmvc常用功能。如：拦截器，注解驱动，默认servlet-handler等
 
-+ 自动配置好web常见功能，如：字符集编码.文件上传，视图解析器等
++ 自动配置好web常见功能，
+
+  > 如：字符集编码，文件上传，视图解析器等
 
 + 默认的包结构（当然也可以自己指定）
 
-  > 主程序所在的包及其下面的所有子包里面的组件都会被默认扫描。如果要自定义包扫描则：`@SpringBootApplication(scanBasePackages = {"com.ly","cn.ly"})`或者 `@ComponentScan(basePackages = {})`
+  > ==主程序所在的包下所有文件及其下面的所有子包里面的组件都会被默认扫描==。如果要自定义包扫描则：`@SpringBootApplication(scanBasePackages = {"com.ly","cn.ly"})`或者 `@ComponentScan(basePackages = {})`
   >
   > ```java
+  > //@ComponentScan(basePackages = {})会报错，那就把下面注解分开写
   > @SpringBootApplication
   > //等同于  看此注解内部详情
   > @SpringBootConfiguration
@@ -358,21 +362,21 @@ java -jar xxx.jar
   > ```sh
   > # 包结构
   > com
-  >  +- example
-  >      +- myapplication
-  >          +- MyApplication.java # 主程序(使用@SpringBootApplication注解的)
-  >          |
-  >          +- customer
-  >          |   +- Customer.java
-  >          |   +- CustomerController.java
-  >          |   +- CustomerService.java
-  >          |   +- CustomerRepository.java
-  >          |
-  >          +- order
-  >              +- Order.java
-  >              +- OrderController.java
-  >              +- OrderService.java
-  >              +- OrderRepository.java
+  > +- example
+  >   +- myapplication # 下面所有组件都会被扫描
+  >       +- MyApplication.java # 主程序(使用@SpringBootApplication注解的)
+  >       |
+  >       +- customer  
+  >       |   +- Customer.java
+  >       |   +- CustomerController.java
+  >       |   +- CustomerService.java
+  >       |   +- CustomerRepository.java
+  >       |
+  >       +- order
+  >           +- Order.java
+  >           +- OrderController.java
+  >           +- OrderService.java
+  >           +- OrderRepository.java
   > ```
 
 + 各种配置拥有默认值
@@ -390,6 +394,12 @@ java -jar xxx.jar
   > 所有自动配置均在`spring-boot-autoconfigure`包中配置
   >
   > ![image-20220629143743248](img\image-20220629143743248.png)
+  >
+  > ***配置了所有常用功能：***
+  >
+  > ![image-20220727114922554](.\img\image-20220727114922554.png)
+  >
+  > ***如果点进去发现是红色的，或者点不进去的：***说明当前没有启动那个场景，如果需要自己在pom中设置对应场景依赖即可
 
 + …
 
@@ -403,18 +413,37 @@ java -jar xxx.jar
 
 ##### ①、@Configuration `配置类代替Spring的xml配置文件`
 
-+ 基本使用
-+ *Full模式与Lite模式（重点）*
-  + 示例
-  + 最佳实战
-    + 配置类组件之间无依赖关系的，用Lite模式。加速容器启动过程，减少判断。
-    + 配置类组件之间有依赖关系，用Full模式。方法被调用会得到之前的单实例组件。
+即用@Configuration注解的配置类代替SpringConfig.xml配置文件，一个类就是一个配置文件
 
-==即用@Configuration注解的配置类代替SpringConfig.xml配置文件，一个类就是一个配置文件==
+> 可以使用@Scope("prototype") 或@Scope("singleton")定义多/单实例
 
-==注意：此方法默认是单实例singleton，每次获取都是同一个对象==
+==***Full模式与Lite模式（重点`@Configuration(proxyBeanMethods = true/false)`）***==
 
-==可以使用@Scope("prototype") 或@Scope("singleton")定义多/单实例，此注解只能用于类或方法上！==
++ ***示例***
+
+  ```java
+  MyConfiguration bean = run.getBean(MyConfiguration.class);
+  System.out.println("获得配置类本身：");
+  //根据proxyBeanMethods = true/false 判断是否代理配置类创建bean方法
+  User user01 = bean.user01();
+  User user011 = bean.user01();
+  System.out.println(user01 == user011);
+  ```
+
+  > 其实就是判断创建bean的方法，自己调用时是不是也要经过Spring的判断（默认是需要Spring判断）
+
++ ***最佳实战***
+  
+  + 配置类组件之间无依赖关系的，用Lite模式`(proxyBeanMethods=false)`。加速容器启动过程，减少判断。
+  
+    > 此时配置类类型：`com.ly.boot.config.MyConfiguration@286b39c2`
+  
+  + 配置类组件之间有依赖关系，用Full模式`(proxyBeanMethods=true)`。方法被调用会得到之前的单实例组件。
+  
+    > 此时配置类类型：`com.ly.boot.config.MyConfiguration$$EnhancerBySpringCGLIB$$12c8f4f1@4525d1d3`
+
++ ***适应场景：***
+  + 组件依赖
 
 ***配置类创建组件：***
 
@@ -423,13 +452,14 @@ java -jar xxx.jar
 /**
  * 1、@Configuration 此注解用于告诉SpringIOC该类为一个配置类（对应一个配置文件）,默认也是单实例的
  * 2、proxyBeanMethods：SpringBoot2新特点 字面意思表示“是否代理bean对象的调用方法”
- *      默认为true：表示使用代理bean对象的调用方法 即每次调用bean对象Configuration的user01方法都会先去IOC容器中找看看是否有，如果有就直接拿；如果没有才会重新创建。总之一句话：true，保持对象组件user01单实例
- *      设置为false：表示不使用代理bean对象的调用方法 即每次调用bean对象Configuration的user01方法都会创建一个新的对象组件user01
+       默认为true：表示使用代理bean对象的调用方法 即每次调用bean对象Configuration的user01方法都会先去IOC容器中找看看是否有，如果有就直接拿；如果没有才会重新创建。总之一句话：true，保持对象组件user01单实例
+       设置为false：表示不使用代理bean对象的调用方法 即每次调用bean对象Configuration的user01方法都会创建一个新的对象组件user01（即名字还是user01，但是内存地址变化了，新创建对象替换了）
+ 
  * 3、由 proxyBeanMethods 引申出SpringBoot的两种配置：
  *      full：全配置  (proxyBeanMethods=true) 每次都先从IOC容器中先找，找到了就返回。找不到再创建
  *          full优点：每次都先从IOC取，没有才创建节约内存资源
  *      lite：轻量级配置 (proxyBeanMethods=false) 每次都是直接重新创建一个新的组件
- *          lite优点：springBoot启动更快，不坚持组件在Ioc容器中是否已存在
+ *          lite优点：springBoot启动更快，不检测组件在Ioc容器中是否已存在
  *
  *  4、proxyBeanMethods属性用于解决：组件依赖(true依赖，false不依赖)
  *      如User类中有一个Pet pet对象。
@@ -493,7 +523,7 @@ public class MainApplication {
         System.out.println(user==user1);//true
         
         //,默认也是单实例的
-        Configuration bean = run.getBean(Configuration.class);
+        MyConfiguration bean = run.getBean(MyConfiguration.class);
         System.out.println("获得配置类本身：");
         System.out.println(bean);
         
@@ -515,7 +545,7 @@ public class MainApplication {
 
 ​	1、`@ComponentScan` 和之前一样，指定的包会被扫描
 
-​	2、`@Import`需要写在IOC容器中的组件类上（`配置类或者@Controller类等均可`），其意思就是==当SpringBoot启动时扫描到被`@Import`注解的类时，会导入其指定类（`如：User`）到IOC容器中（利用这些类的无参构造器）==
+​	2、`@Import`需要写在IOC容器中的组件类上（`配置类或者@Controller类等均可`），其意思就是==当SpringBoot启动时扫描到被`@Import`注解的类时，会导入其指定类（`如：User`）到IOC容器中（利用这些类的无参构造器），ioc容器中该组件的名字默认为全类名==
 
 ```java
 //例如 放在配置类上
@@ -576,9 +606,9 @@ public class Configuration {
 
 #### 2.2、@ImportResource 原生Spring配置文件引入
 
-​	作用：将原始的Spring的xml配置文件引入到IOC容器中。
+​	==作用：将原始的Spring的xml配置文件引入到IOC容器中。==
 
-​	步骤：只需要将此注解写在随便一个配置类上即可
+​	==步骤：只需要将此注解写在随便一个配置类上即可==
 
 如：
 
@@ -629,7 +659,7 @@ public class MainApplication {
 
 ```
 
-#### 2.3、配置绑定
+#### 2.3、***配置绑定***
 
 ​	如何使用Java读取到properties文件中的内容。并且把它封装到JavaBean中，以供随时使用。
 
@@ -643,7 +673,19 @@ public class MainApplication {
 
 ***SpringBoot注解方法***
 
-##### ①、@Component + @ConfiguratonProperties 
+##### ①、@Component + @ConfiguratonProperties  适用于自己的类
+
+==***此方法创建的组件名，默认是首字母小写（如Car类的car）***==
+
+> 必须导入依赖才能让IDE解析，跳转到对应的setxxx()方法
+>
+> ```xml
+> <dependency>
+>     <groupId>org.springframework.boot</groupId>
+>     <artifactId>spring-boot-configuration-processor</artifactId>
+>     <optional>true</optional>
+> </dependency>
+> ```
 
 ==注意此方法：的properties配置文件必须以application开头的文件。即application*.properties==
 
@@ -653,6 +695,7 @@ public class MainApplication {
 # server.port=8888
 spring.servlet.multipart.max-file-size=1MB
 
+# 配置了spring-boot-configuration-processor 且加上@Component 就可以自动跳转到对应set方法
 mycar.brand=BYD
 mycar.price=10000
 ```
@@ -703,7 +746,9 @@ springBoot自动集成了json，所以自动转化为json对象了
 
 
 
-##### ②、@EnableConfigurationProperties + @ConfigurationProperties
+##### ②、@EnableConfigurationProperties + @ConfigurationProperties 适用于第三方类
+
+==***此方法创建的组件名，默认是前缀-全类名（如mycar-com.ly.boot.bean.Car）***==
 
 ==注意此方法：的properties配置文件必须以application开头的文件。即application*.properties==
 
@@ -724,7 +769,7 @@ springBoot自动集成了json，所以自动转化为json对象了
 
 @Configuration
 /**
- * 两个作用：
+ * @EnableConfigurationProperties(Car.class)两个作用：
  *  1、开启Car配置绑定功能
  *  2、把这个Car组件自动注册到容器中
  */
@@ -737,7 +782,7 @@ public class AnnotationConfiguration {
 ```java
 /**
  * Car.java
- * 只有容器中的组件才能使用这些注解方法所以必须加上@Component
+ * 只有容器中的组件才能使用这些注解方法所以必须加上@Component,如果有@EnableConfigurationProperties就不需要了
  */
 //@Component 使用@EnableConfigurationProperties代替此注解
 
@@ -762,8 +807,17 @@ public class Car {
 
 #### 3.1、引导加载自动配置类
 
+***@SpringBootApplication：主要由以下三部分组成***
+
++ `@SpringBootConfiguration`
++ `@EnableAutoConfiguration`
++ `@ComponentScan`
+
+***
+***@SpringBootConfiguration.class 配置类***
+
 ```java
-//SpringBootConfiguration.class （三个中标目配置类）
+//SpringBootConfiguration.class （配置类）
 package org.springframework.boot;
 ...
 @Target({ElementType.TYPE})
@@ -778,6 +832,7 @@ public @interface SpringBootConfiguration {
     boolean proxyBeanMethods() default true;
 }
 ```
+***@ComponentScan.class 包扫描***
 
 ```java
 //@ComponentScan就是包扫描，它自定义了排除过虑器 （三个中开启包扫描）
@@ -791,6 +846,7 @@ public @interface SpringBootConfiguration {
     classes = {AutoConfigurationExcludeFilter.class}
 )}
 ```
+***@EnableAutoConfiguration.class 最主要，处理业务逻辑***
 
 ```java
 //EnableAutoConfiguration.class 三个中最重要

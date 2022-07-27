@@ -1,2 +1,8 @@
-com\ly\boot\controller\HelloController.class
+com\ly\boot\bean\Pet.class
+com\ly\boot\config\AnnotationConfiguration.class
+com\ly\boot\config\Configuration.class
 com\ly\boot\MainApplication.class
+com\ly\boot\bean\Car.class
+com\ly\boot\controller\HelloController.class
+META-INF\spring-configuration-metadata.json
+com\ly\boot\bean\User.class

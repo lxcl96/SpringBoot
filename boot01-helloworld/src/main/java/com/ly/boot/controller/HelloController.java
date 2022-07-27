@@ -17,7 +17,13 @@ public class HelloController {
     private Car myCar;
 
     @RequestMapping("/car")
+    /**
+     * public Car getCar(@Autowired Car myCar) {
+     * @Autowired在控制器参数中失效，因为返回bean为dispatcherServlet新建的，然后把请求中的对应值赋值
+     * 因为没有这些参数，所有输出一值为null，但是car!=null
+     */
     public Car getCar() {
+        System.out.println(myCar + "   hashcode=" + myCar.hashCode());
         return myCar;
     }
     @RequestMapping("/")

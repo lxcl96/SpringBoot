@@ -25,7 +25,7 @@ public class AnnotationConfiguration {
 
     //和这个效果一样
 //    @Bean("lisi")
-//    public User getUser() {
-//        return new User("李四",33);
-//    }
+    public User getUser() {
+        return new User("李四",33);
+    }
 }

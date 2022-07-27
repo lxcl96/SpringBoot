@@ -1,5 +1,7 @@
 package com.ly.boot.bean;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 /**
  * @FileName:User.class
  * @Author:ly
@@ -10,6 +12,7 @@ public class User {
     private String name;
     private Integer age;
     private Pet pet;
+
 
 
     public User() {
