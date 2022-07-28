@@ -799,6 +799,8 @@ public class Car {
 
 ### 3、自动配置原理入门
 
+***SpringBoot启动默认加载所以场景，但是最终会根据条件装配规则，按需配置！***
+
 `@SpringBootApplication`由下面三个注解组成：
 
 + `@SpringBootConfiguration`
@@ -879,14 +881,14 @@ public @interface EnableAutoConfiguration {
 > @Documented
 > @Inherited
 > /*
->  导入包Registrar，给容器中进行批量注册bean组件.
->  批量注册的都是我们写的主程序（MainApplication.java）所在包下，及其子包下的所有被注解标注的类 即com.ly.boot下所有类
->  */
+> 导入包Registrar，给容器中进行批量注册bean组件.
+> 批量注册的都是我们写的主程序（MainApplication.java）所在包下，及其子包下的所有被注解标注的类 即com.ly.boot下所有类
+> */
 > @Import({AutoConfigurationPackages.Registrar.class}) 
 > public @interface AutoConfigurationPackage {
->     String[] basePackages() default {};
+> String[] basePackages() default {};
 > 
->     Class<?>[] basePackageClasses() default {};
+> Class<?>[] basePackageClasses() default {};
 > }
 > ```
 >
@@ -896,7 +898,450 @@ public @interface EnableAutoConfiguration {
 >
 > ② *** @EnableAutoConfiguration 内的 @Import({AutoConfigurationImportSelector.class})*** 
 >
-> 
+> ***核心方法：***
+>
+> ```java
+> 	protected AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata annotationMetadata) {
+> 		if (!isEnabled(annotationMetadata)) {
+> 			return EMPTY_ENTRY;
+> 		}
+>         //获取注解@EnableAutoConfiguration属性值 exclude 和 excludeName
+> 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
+>         //获取所有等待自动配置的 候选人共144个
+> 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
+>         //去掉重复的类名
+> 		configurations = removeDuplicates(configurations);
+>         //根据属性值 exclude 和 excludeName获取排除的类名，默认为null
+> 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
+> 		checkExcludedClasses(configurations, exclusions);
+>         //从默认144个自动配置候选人中，删除被排出的exclude 和 excludeName的值
+> 		configurations.removeAll(exclusions);
+>         //根据当前设置的启动器spring-boot-starter-web，筛选出需要用到的进行自动配置（24个）
+> 		configurations = getConfigurationClassFilter().filter(configurations);
+>         //开启自动配置导入事件Evenr
+> 		fireAutoConfigurationImportEvents(configurations, exclusions);
+> 		return new AutoConfigurationEntry(configurations, exclusions);
+> 	}
+> ```
+> ***详细解析：***
+>
+> + `List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);`
+>
+>   > 1、然后调用方法加载所有候选Candidate需要导入的包：`ImportCandidates.load(AutoConfiguration.class, getBeanClassLoader())`
+>   >
+>   > ```java
+>   > public static ImportCandidates load(Class<?> annotation, ClassLoader classLoader) {
+>   >     Assert.notNull(annotation, "'annotation' must not be null");
+>   >     ClassLoader classLoaderToUse = decideClassloader(classLoader);
+>   >     //获取配置文件路径
+>   >     String location = String.format("META-INF/spring/%s.imports", annotation.getName());
+>   >     Enumeration<URL> urls = findUrlsInClasspath(classLoaderToUse, location);
+>   >     ArrayList autoConfigurations = new ArrayList();
+>   > 
+>   >     while(urls.hasMoreElements()) {
+>   >         URL url = (URL)urls.nextElement();
+>   >         //把配置文件内容加到 autoConfigurations
+>   >         autoConfigurations.addAll(readAutoConfigurations(url));
+>   >     }
+>   > 
+>   >     return new ImportCandidates(autoConfigurations);
+>   > }
+>   > ```
+>   >
+>   > 2、然后调用方法，读取注解`@AutoConfiguration.class`所在包`spring-boot-autoconfigure-2.7.1.jar`下的[org.springframework.boot.autoconfigure.AutoConfiguration.imports](org.springframework.boot.autoconfigure.AutoConfiguration.imports)文件，获取144个组件名：
+>   >
+>   > `String location = String.format("META-INF/spring/%s.imports", annotation.getName());`
+>   >
+>   > 结果为：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+>   >
+>   > ![image-20220728103235383](.\img\image-20220728103235383.png)
+>   >
+>   > 
+>   >
+>   >  
+
+#### 3.2、按需加载上面144个配置类
+
+***SpringBoot启动默认加载所以场景，但是最终会根据条件装配规则，按需配置！***
+
+虽然注解`@AutoConfiguration.class`所在包`spring-boot-autoconfigure-2.7.1.jar`下的[org.springframework.boot.autoconfigure.AutoConfiguration.imports](org.springframework.boot.autoconfigure.AutoConfiguration.imports)文件由144个场景启动的组件类，但是我们不是每个都需要。所以会根据实际配置的场景按需启动。
+
+> ***如我们在pom.xml文件中只配置了`spring-boot-starter-web`的场景启动，则只会按需加载此场景组件***
+>
+> 原理：
+>
+> 比如我们需要***amqp**的自动配置，则需要看对应目录下`xxxAutoConfiguration`类，该类上会有个条件
+>
+> ```java
+> @AutoConfiguration
+> //仅在指定的RabbitTemplate和Channel类路径存在时，才会自动注入，
+> //也就是说我们导入某个场景启动器才会导入该类，则其对应组件才会被自动配置
+> @ConditionalOnClass({ RabbitTemplate.class, Channel.class })
+> @EnableConfigurationProperties(RabbitProperties.class)
+> @Import({ RabbitAnnotationDrivenConfiguration.class, RabbitStreamConfiguration.class })
+> public class RabbitAutoConfiguration {
+> ```
+>
+> 如：我们需要***h2***的自动配置，需要满足所有的`@Conditiolal`条件才会导入
+>
+> ```java
+> @AutoConfiguration(after = DataSourceAutoConfiguration.class)
+> //需要开启web servlet
+> @ConditionalOnWebApplication(type = Type.SERVLET)
+> //需要WebServlet类路径存在
+> @ConditionalOnClass(WebServlet.class)
+> //Environment中需要有指定属性值（Environment中来源就是application.properties配置文件中自己配置的）
+> @ConditionalOnProperty(prefix = "spring.h2.console", name = "enabled", havingValue = "true")
+> @EnableConfigurationProperties(H2ConsoleProperties.class)
+> public class H2ConsoleAutoConfiguration {
+> ```
+> Property查看***h2***属性，就是配置文件`application*.yml/yaml/properties`中是否有`spring.h2.console`开头的，
+>
+> 属性名为`enabled`
+>
+> ![image-20220728112815190](D:\JavaWork\SpringBoot\Note\img\image-20220728112815190.png)
+>
+> 如：我们pom文件中添加的`spring-boot-starter-web`启动器，默认就是tomcat
+>
+> ![image-20220728111222031](.\img\image-20220728111222031.png)
+
+#### 3.3、修改默认配置
+
+如：`spring-boot-autoconfigure-2.7.1.jar`包下web/servlet下的`DispatcherServletAutoConfiguration.java`
+
+```java
+//给容器中加入名字为multipartResolver的组件
+@Bean
+//如果容器中有MultipartResolver.class
+@ConditionalOnBean(MultipartResolver.class)
+//但是容器中没有名字为multipartResolver的组件时
+@ConditionalOnMissingBean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+public MultipartResolver multipartResolver(MultipartResolver resolver) {//自动注入容器中的参数
+   // Detect if the user has created a MultipartResolver but named it incorrectly
+   return resolver;
+}
+```
+
+SpringBoot默认会在底层配好所有组件，但是如果用户自己配置了，则用户的优先使用。
+
+```java
+//HttpEncodingAutoConfiguration.java
+@Bean
+@ConditionalOnMissingBean
+public CharacterEncodingFilter characterEncodingFilter() {
+   CharacterEncodingFilter filter = new OrderedCharacterEncodingFilter();
+   filter.setEncoding(this.properties.getCharset().name());
+   filter.setForceRequestEncoding(this.properties.shouldForce(Encoding.Type.REQUEST));
+   filter.setForceResponseEncoding(this.properties.shouldForce(Encoding.Type.RESPONSE));
+   return filter;
+}
+```
+
+***总结：***
+
++ 自己配了组件，SpringBoot就用；如果没配，SpringBoot会自动配置 （`xxxAutoConfiguration`）
+
++ 每个自动配置按照不同的条件(`@Conditional`，也就是对应的场景starter)生效，默认都会有一个properties配置文件绑定值，需要什么属性值就去取
+
+  > ==每个`xxxAutoConfiguration.class`\=\=》依赖`xxxProperties.class`\=\=>绑定`application*.yml/yaml/properties`==
+  >
+  > SpringBoot中所有配置文件都是在`application*.yml/yaml/properties`中，使用的时候通过前缀prefix来区分
+  >
+  > ```java
+  > @AutoConfiguration
+  > @EnableConfigurationProperties(ServerProperties.class)
+  > @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+  > @ConditionalOnClass(CharacterEncodingFilter.class)
+  > @ConditionalOnProperty(prefix = "server.servlet.encoding", value = "enabled", matchIfMissing = true)
+  > public class HttpEncodingAutoConfiguration {...}
+  > 
+  > //对应的ServerProperties.class
+  > @ConfigurationProperties(prefix = "server", ignoreUnknownFields = true)
+  > public class ServerProperties {...}
+  > 
+  > //对应application*.yml/yaml/properties配置文件中的 server开头的配置
+  > ```
+  > ![image-20220728140345081](.\img\image-20220728140345081.png)
+
++ 生效的配置类就会给容器中自动注入相应组件，相当于自己配置
+
+  > 如`spring-boot-starter-web`场景就会自动注入dispatcherServlet，characterEncodingFilter等
+
++ 定制化配置（自己修改对应组件的属性值，只需要修改配置文件即可）
+
+  > **xxxxxAutoConfiguration ---> 组件  --->** **xxxxProperties里面拿值  ----> application.properties**
+
+
+
+
+
+***
+
+#### 3.4、最佳实践
+
++ 引入相应的场景依赖
+
+  > springboot官方场景starter：[Developing with Spring Boot](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/using.html#using.build-systems.starters)
+
++ 查看自动配置了哪些类（选做）
+
+  * 自己分析源码，引入场景的自动配置哪些生效和不生效
+
+    > 什么xxxstarter对应`spring-boot-autoconfigure-2.7.1.jar`包下对应目录（如：tomcat-->web）
+
+  * 配置文件`application*.yml/yaml/properties`中添加属性 `debug=true`，开启debug启动报告
+
+    > Positive matches：开启的组件，及开启的原因（注入）
+    >
+    > Negative matches：未开启的组件，及未开启原因（不注入）
+    >
+    > Exclusions：排除的组件（不注入）
+    >
+    > Unconditional classes：无条件类（注入）
+
++ 修改配置
+
+  + 参考官方文档，修改配置文件`application*.yml/yaml/properties`
+
+    > 配置官方文档：[Common Application Properties (spring.io)](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/application-properties.html#appendix.application-properties)
+
+  + 自己分析不同场景starter下，`spring-boot-autoconfigure-2.7.1.jar`包下对应源码
+
+    > **xxxxxAutoConfiguration ---> 组件  --->** **xxxxProperties里面值  ----> application.properties**
+
+  + 自定义加入组件
+
+    > 配置类中`@Bean,@Import,@Component`等等
+
+  + ***创建自定义器，xxxCustomizer***（后面研究）
+
+  + ......
+
+***
+
+### 4、开发小技巧
+
+#### 4.1、Lombok
+
+简化JavaBean开发
+
+***Lombok使用步骤：***
+
++ 引入依赖（就在父pom文件中规定好的版本）
+
+  ```xml
+  <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>${lombok.version}</version>
+  </dependency>
+  ```
+
++ 安装Lombok插件（小辣椒图标，idea自带），会自动帮我们生成getter和setter方法（当然是编译时生成的）
+
++ POJO类上加上Lombok的`@Data,@ToString`注解即可
+
+  ```java
+  //当然仅在编译时自动生成
+  
+  @AllArgsConstructor//自动生成所有参数的有参构造器
+  @NoArgsConstructor//自动生成无参构造器
+  @ToString//自动生成toString方法
+  @Data //自动生成getter，setter方法
+  @ConfigurationProperties(prefix = "mycar")//前缀就是properties文件里的前缀
+  public class Car {
+      private String brand;
+      private Integer price;
+      
+  }
+  ```
+
+***Lombok常用注解：***
+
+| 注解                | 作用                                               |
+| ------------------- | -------------------------------------------------- |
+| @Data               | 编译时自动生成getter，setter方法                   |
+| @ToString           | 编译时自动生成toString方法                         |
+| @NoArgsConstructor  | 编译时自动生成无参构造器                           |
+| @AllArgsConstructor | 编译时自动生成所有参数的有参构造器（其余的自己写） |
+| @EqualsAndHashCode  | 编译时自动重写equal和hashcode方法                  |
+| @Slf4j              | 编译时自动注入一个日志组件                         |
+
+***
+
+#### 4.2、dev-tools
+
+实现服务的热更新，每次更新文件或资源不需要重启服务。
+
+***dev-tools使用步骤：***
+
++ 导入相应依赖
+
+  ```xml
+  <dependencies>
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-devtools</artifactId>
+          <optional>true</optional>
+      </dependency>
+  </dependencies>
+  ```
+
++ 如果更新文件或资源直接`Ctrl+F9`或锤子图标编译，dev-tools会自动进行重启服务（简化部署）
+
++ 如果想要热更新，reload需要付费使用 [JRebel](https://jrebel.com/software/jrebel/)  插件
+
+***
+
+#### 4.3、Spring Initializer(项目初始化向导)
+
+IDEA中新建项目/模块时使用
+
++ 新建工程或项目
+
+  ![image-20220728163908985](.\img\image-20220728163908985.png)
+
++ 勾选需要的场景启动器
+
+  ![image-20220728164120041](.\img\image-20220728164120041.png)
+
++ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

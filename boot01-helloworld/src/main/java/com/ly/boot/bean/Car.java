@@ -1,5 +1,6 @@
 package com.ly.boot.bean;
 
+import lombok.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -22,41 +23,15 @@ import org.springframework.stereotype.Component;
          </dependency>
  *    2、必须加上@Component之类的注解，表示放在ioc容器中
  */
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
+@Data
+@EqualsAndHashCode
 //@Component
 @ConfigurationProperties(prefix = "mycar")//前缀就是properties文件里的前缀
 public class Car {
     private String brand;
     private Integer price;
 
-    public Car() {
-    }
-
-    public Car(String brand, Integer price) {
-        this.brand = brand;
-        this.price = price;
-    }
-
-    public String getBrand() {
-        return brand;
-    }
-
-    public void setBrand(String brand) {
-        this.brand = brand;
-    }
-
-    public Integer getPrice() {
-        return price;
-    }
-
-    public void setPrice(Integer price) {
-        this.price = price;
-    }
-
-    @Override
-    public String toString() {
-        return "Car{" +
-                "brand='" + brand + '\'' +
-                ", price=" + price +
-                '}';
-    }
 }
