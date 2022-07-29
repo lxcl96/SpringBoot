@@ -1,0 +1,73 @@
+{
+  "groups": [
+    {
+      "name": "yml.person",
+      "type": "com.ly.boot.bean.Person",
+      "sourceType": "com.ly.boot.bean.Person"
+    }
+  ],
+  "properties": [
+    {
+      "name": "yml.person.age",
+      "type": "java.lang.Integer",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.all-pets",
+      "type": "java.util.Map<java.lang.String,java.util.List<com.ly.boot.bean.Pet>>",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.animal",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.birth",
+      "type": "java.util.Date",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.boss",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.interests",
+      "type": "java.lang.String[]",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.pet",
+      "type": "com.ly.boot.bean.Pet",
+      "description": "Description for yml.person.pet.",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.pet.name",
+      "type": "java.lang.String",
+      "description": "Description for yml.person.pet.name."
+    },
+    {
+      "name": "yml.person.pet.weight",
+      "type": "java.lang.String",
+      "description": "Description for yml.person.pet.weight."
+    },
+    {
+      "name": "yml.person.salarys",
+      "type": "java.util.Set<java.lang.Double>",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.score",
+      "type": "java.util.Map<java.lang.String,java.lang.Object>",
+      "sourceType": "com.ly.boot.bean.Person"
+    },
+    {
+      "name": "yml.person.user-name",
+      "type": "java.lang.String",
+      "sourceType": "com.ly.boot.bean.Person"
+    }
+  ],
+  "hints": []
+}

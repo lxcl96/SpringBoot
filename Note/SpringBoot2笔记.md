@@ -1205,13 +1205,188 @@ IDEA中新建项目/模块时使用
 
   ![image-20220728164120041](.\img\image-20220728164120041.png)
 
-+ 
+***
+
+# 2、SpringBoot核心技术--核心功能
+
+## 2.1、配置文件
+
+***支持的配置文件类型：***
+
++ `properties文件`
++ `yaml文件`
++ `yml文件`
+
+### ***1、yaml文件原理：***
+
+YAML 是 "YAML Ain't Markup Language"（YAML 不是一种标记语言）的递归缩写。在开发的这种语言时，YAML 的意思其实是："Yet Another Markup Language"（仍是一种标记语言）。 
+
+非常适合用来做以数据为中心的配置文件
+
+### ***2、yaml文件基本语法：***
+
++ `K: v`，需要注意冒号: 后面有一个空格
++ `大小写敏感`
++ `使用缩进表示层级关系`
++ `缩进不允许使用tab按键，只能使用空格`（idea会自动把tab换成空格）
++ `缩进的空格数不重要，不关心，只要是相同层级的元素左对齐即可`
++ `# 表示注释`
++ `字符串无需加引号，如果非要加记住：''单引号字符串内容会被 转义（意思是单引号和\一样会转义，但实际可能不转义），""双引号表示字符串内容 不转义（意思是双引号和\不一样不会转义，但实际可能转义）`
+
+### ***3、yaml文件数据类型：***
+
++ ***字面量：***单个的、不可再分的值。如：date，boolean，string，number，null
+
+  ```yaml
+  k: v
+  ```
+
++ ***对象：***键值对的集合。如：map，hash，set，object
+
+  ```yaml
+  # 行内写法  对象是{} ,里面不需要空格
+  k: {k1:v1,k2:v2,k3:v3}
+  
+  # 或者
+  k: 
+     k1: v1
+     k2: v2
+     k3: v3
+  ```
+
++ ***数组：***一组按次序排列的值。如：array，list，queue
+
+  ```yaml
+  # 行内写法  数组是[]
+  k: [v1,v2,v3]
+  
+  # 或者
+  k: 
+     - v1 # -表示一个元素，空格，然后是属性值
+     - v2
+     - v3
+  ```
+
+### ***4、yaml文件使用示例：***
+
+分别绑定properties配置文件和yaml配置文件
+
+***Bean对象类型：***
+
+```java
+@Data
+@ToString
+@Component
+//@ConfigurationProperties(prefix = "properties.person")
+@ConfigurationProperties(prefix = "yml.person")
+public class Person {
+    private String userName;
+    private Boolean boss;
+    private Date birth;
+    private Integer age;
+    private Pet pet;
+    private String[] interests;
+    private List<String> animal;
+    private Map<String, Object> score;
+    private Set<Double> salarys;
+    private Map<String, List<Pet>> allPets;
+}
+```
+
+```java
+@Data
+@ToString
+public class Pet {
+    private String name;
+    private Double weight;
+}
+```
+
+***yaml配置文件定义一个Person对象：***
+
+```yaml
+yml.person:
+# 双引号"" 会将 \n 作为换行输出  
+	#（\本来就是【转义】，""双引号代表【不转义】，所以最后总的是 【转义】 输出换行） 
+# 单引号'' 会将 \n 作为字符串输出 
+	#（\本来就是【转义】，''单引号代表【转义】，所以最后总的是 【不转义】 输出换行） 负负得正
+  userName: "张三 \n 李四"
+  boss: true
+  # 日期写法必须为 / 区分，或者自己在 additional-spring-configuration-metadata.json文件中定义类型
+  birth: 1983/12/14
+  age: 39
+  # 另一个对象
+  pet:
+    name: 小黄
+    weight: 15
+  interests: [抽烟,喝酒,烫头]
+  animal:
+    - 大象
+    - 老虎
+    - 狮子
+  score:
+    chinese: 99
+    math: 100
+    psychological: 13
+  salarys: [20000,180000]
+  allPets:
+    # key 不能为中文
+    dongwu:
+      - {name: 小黄,weight: 15} # 行内写法 对象
+      - name: 小米
+        weight: 8
+    zhiwu:
+      - name: 富贵竹
+        weight: 1.5
+      - name: 绿萝
+        weight: 1
+
+
+debug: true
+```
+
+### ***5、yaml配置文件注意事项：***
+
++ ==yaml配置文件中key值不能为中文，最好是和变量名那样的规则==
+
++ ==可以在`resources\META-INF\additional-spring-configuration-metadata.json`文件中自定义属性的数据类型，可以用来解决自动转换格式问题==
+
+  ```json
+  {
+    "properties": [
+      { 
+        "name": "yml.person.pet",
+        "type": "com.ly.boot.bean.Pet",//指定类型，不然总是当初String类型
+        "description": "Description for yml.person.pet."
+      }
+    ] }
+  ```
+
++ ==所有`application*.yml/yaml/properties`配置文件都会加载，而加载顺序yml > yaml > properties（如果出现相同属性的不同只，最后加载的会覆盖掉前面）==
 
 
 
 
 
 
+
+## 2.2、Web开发
+
+
+
+## 2.3、数据访问
+
+
+
+## 2.4、单元测试
+
+
+
+## 2.5、指标监控
+
+
+
+## 2.6、原理解析
 
 
 

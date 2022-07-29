@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "yml.person.pet",
+      "type": "com.ly.boot.bean.Pet",
+      "description": "Description for yml.person.pet."
+    }
+  ] }
