@@ -1,5 +1,4 @@
 yml.person:
-  userName: 张三
   boss: true
   # 日期写法必须为你/区分，或者自己在 additional-spring-configuration-metadata.json文件中定义类型
   birth: 1983/12/14
@@ -29,6 +28,9 @@ yml.person:
         weight: 1.5
       - name: 绿萝
         weight: 1
+    other: [{name: 恐龙,weight: 1000000},{name: 小猪,weight: 500}]
+yml:
+  person:
+    # -n 表示 N
+    user-name: 张三
 
-
-debug: true

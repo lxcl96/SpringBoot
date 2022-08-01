@@ -44,16 +44,6 @@
       "sourceType": "com.ly.boot.bean.Person"
     },
     {
-      "name": "yml.person.pet.name",
-      "type": "java.lang.String",
-      "description": "Description for yml.person.pet.name."
-    },
-    {
-      "name": "yml.person.pet.weight",
-      "type": "java.lang.String",
-      "description": "Description for yml.person.pet.weight."
-    },
-    {
       "name": "yml.person.salarys",
       "type": "java.util.Set<java.lang.Double>",
       "sourceType": "com.ly.boot.bean.Person"

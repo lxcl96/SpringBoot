@@ -1364,13 +1364,147 @@ debug: true
 
 + ==所有`application*.yml/yaml/properties`配置文件都会加载，而加载顺序yml > yaml > properties（如果出现相同属性的不同只，最后加载的会覆盖掉前面）==
 
+### ***6、配置文件提示属性功能：***
 
++ 添加依赖springBoot配置处理器
 
+  ```xml
+  <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+  </dependency>
+  ```
 
-
-
++ 重新运行一次应用，即可
 
 ## 2.2、Web开发
+
+### ***1、SpringMVC自动配置概览***
+
+官方文档：
+
+> Spring Boot provides auto-configuration for Spring MVC that **works well with most applications.(大多场景我们都无需自定义配置)**
+>
+> The auto-configuration adds the following features on top of Spring’s defaults:
+>
+> - Inclusion of `ContentNegotiatingViewResolver` and `BeanNameViewResolver` beans.
+>
+> - - 内容协商视图解析器和BeanName视图解析器
+>
+> - Support for serving static resources, including support for WebJars (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-static-content))).
+>
+> - - 静态资源（包括webjars）
+>
+> - Automatic registration of `Converter`, `GenericConverter`, and `Formatter` beans.
+>
+> - - 自动注册 `Converter，GenericConverter，Formatter `
+>
+> - Support for `HttpMessageConverters` (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-message-converters)).
+>
+> - - 支持 `HttpMessageConverters` （后来我们配合内容协商理解原理）
+>
+> - Automatic registration of `MessageCodesResolver` (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-message-codes)).
+>
+> - - 自动注册 `MessageCodesResolver` （国际化用）
+>
+> - Static `index.html` support.
+>
+> - - 静态index.html 页支持
+>
+> - Custom `Favicon` support (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-favicon)).
+>
+> - - 自定义 `Favicon`  
+>
+> - Automatic use of a `ConfigurableWebBindingInitializer` bean (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-web-binding-initializer)).
+>
+> - - 自动使用 `ConfigurableWebBindingInitializer` ，（DataBinder负责将请求数据绑定到JavaBean上）
+>
+> If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.9.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
+>
+> **不用@EnableWebMvc注解。使用** `**@Configuration**` **+** `**WebMvcConfigurer**` **自定义规则**
+>
+> 
+>
+> If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
+>
+> **声明** `**WebMvcRegistrations**` **改变默认底层组件**
+>
+> 
+>
+> If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
+>
+> **使用** `**@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration 全面接管SpringMVC**`
+
+### ***2、简单功能分析***
+
+#### 2.1、静态资源访问
+
+##### 1、静态资源目录
+
+只要静态资源存放在静态目录下，均可以直接访问。
+
+![image-20220801142247956](.\img\image-20220801142247956.png)
+
+***访问：*** ==当前项目根路径/ + 静态资源名 ==
+
+> `http://localhost:8080/4.png`
+
+***静态目录（类路径下）：***
+
++ `/static `
++ `public`
++ `resources`
++ `META-INF/resources`
+
+***静态资源直接访问的原理：***
+
+==所有的请求包括静态资源，默认都是被dispatcherServlet处理的，除非自己修改了默认的MVC配置==
+
+如：浏览器访问`http://localhost:8080/1.png`，首先被dispatcherServlet前端控制器接收到，判断有没有对应的映射
+
++ 如果有对应的映射`@RequestMapping`，执行控制器方法，返回什么由实际而定
++ 如果没有对应的映射`@RequestMapping`，直接返回静态资源。（如果静态资源不存在，就报错！）
+
+官方
+
+> By default, Spring Boot serves static content from a directory called `/static` (or `/public` or `/resources` or `/META-INF/resources`) in the classpath or from the root of the `ServletContext`. 
+>
+> In a stand-alone web application, the default servlet from the container is also enabled and acts as a fallback, serving content from the root of the `ServletContext` if Spring decides not to handle it. Most of the time, this does not happen (unless you modify the default MVC configuration), because Spring can always handle requests through the `DispatcherServlet`.
+>
+> It uses the `ResourceHttpRequestHandler` from Spring MVC so that you can modify that behavior by adding your own `WebMvcConfigurer` and overriding the `addResourceHandlers` method.
+
+#### 2.2、欢迎页支持
+
+
+
+#### 2.3、自定义Favicon
+
+
+
+### ***3、请求参数处理***
+
+
+
+### ***4、响应数据与内容协商***
+
+
+
+
+
+### ***5、视图解析与模板引擎***
+
+
+
+
+
+### ***6、拦截器***
+
+
+
+
+
+### ***7、跨域***
 
 
 
