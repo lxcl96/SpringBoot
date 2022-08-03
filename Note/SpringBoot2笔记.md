@@ -1798,7 +1798,7 @@ WelcomePageHandlerMapping(TemplateAvailabilityProviders templateAvailabilityProv
 
 ### ***3、请求参数处理***
 
-#### 0、请求映射
+#### 0、请求映射规则
 
 + `@xxxMapping()`
 
@@ -1897,7 +1897,206 @@ public class MyConfig {
 
 ***请求映射原理：***
 
-发送的的请求是怎么匹配到对应的控制器Controller方法上的?
+> 发送的的请求是怎么匹配到对应的控制器Controller方法上的?
+
+![](.\img\image.png)
+
+SpringMVC功能分析都从 org.springframework.web.servlet.DispatcherServlet-》doDispatch（）
+
+```java
+protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		HttpServletRequest processedRequest = request;
+		HandlerExecutionChain mappedHandler = null;
+		boolean multipartRequestParsed = false;
+
+		WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+
+		try {
+			ModelAndView mv = null;
+			Exception dispatchException = null;
+
+			try {
+				processedRequest = checkMultipart(request);
+				multipartRequestParsed = (processedRequest != request);
+
+				// 找到当前请求使用哪个Handler（Controller的方法）处理
+				mappedHandler = getHandler(processedRequest);
+                
+                //HandlerMapping：处理器映射。/xxx->>xxxx
+```
+
+核心方法：获取路径映射关系
+
+```java
+protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+    //包含所有的映射关系 -- 处理器映射
+   if (this.handlerMappings != null) {
+  	  //遍历处理器映射，根据地址和请求方法 查找对应的处理器handler
+      for (HandlerMapping mapping : this.handlerMappings) {
+          //找到对应的handler，并与拦截器一起包装成 一个执行链
+         HandlerExecutionChain handler = mapping.getHandler(request);
+         if (handler != null) {
+            return handler;
+         }
+      }
+   }
+   return null;
+}
+```
+
+![image-20220803110051319](.\img\image-20220803110051319.png)
+
+上图其中：`RequestMappingInfoHandlerMapping`映射专门用于处理`@RequestMapping`注解的，里面包含我们使用`@RequestMapping`关联的控制器方法
+
+![image-20220803110545940](.\img\image-20220803110545940.png)
+
+> ***所有的请求映射都在HandlerMapping中。***
+>
+> + SpringBoot自动配置欢迎页（welcome）的 WelcomePageHandlerMapping 。访问 /能访问到index.html；
+>
+> + SpringBoot自动配置（`WebMvcAutoConfiguration.java`）了默认 的 RequestMappingHandlerMapping
+>
+> +  请求进来，挨个尝试所有的HandlerMapping看是否有请求信息。
+>     ○ 如果有就找到这个请求对应的handler
+>     ○ 如果没有就是下一个 HandlerMapping
+>
+> + ==总之，如果我们需要一些自定义的映射处理，我们也可以自己给容器中放HandlerMapping（`配置类中加自定义 HandlerMapping`）。==
+>
+>   > ```java
+>   > @Bean
+>   > //类似这样
+>   > public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext,
+>   >       FormattingConversionService mvcConversionService, ResourceUrlProvider mvcResourceUrlProvider) {
+>   >    WelcomePageHandlerMapping welcomePageHandlerMapping = new WelcomePageHandlerMapping(
+>   >          new TemplateAvailabilityProviders(applicationContext), applicationContext, getWelcomePage(),
+>   >          this.mvcProperties.getStaticPathPattern());
+>   >    welcomePageHandlerMapping.setInterceptors(getInterceptors(mvcConversionService, mvcResourceUrlProvider));
+>   >    welcomePageHandlerMapping.setCorsConfigurations(getCorsConfigurations());
+>   >    return welcomePageHandlerMapping;
+>   > }
+>   > ```
+
+#### 1、普通参数与基本注解
+
+##### 1.1、注解方式获取参数
+
+`@PathVatiable、@RequestHeader、@ModelAttribute、@RequestParam、@MatrixVariable、@CookieValue、@RequestBody`
+
++ <font color='red '> `@PathVatiable` </font> 用于restful风格请求路径变量
+
+  ```java
+  /**
+   * 请求链：http://localhost:8080/car/3/owner/lisi?age=18&inters=basketball&inters=game
+   * 注解@PathVariable的两种 获取restful风格参请求路径变量的用法：
+   *      1、根据参数名获取
+   *      2、封装到一个map集合中，类型必须为Map<String,String>
+   * @param id 参数id
+   * @param username  参数 username
+   * @param pv 参数集合
+   * @return 集合
+   */
+  @RequestMapping("/car/{id}/owner/{username}")
+  public Map<String,Object> getCar(@PathVariable("id") Integer id,
+                                   @PathVariable("username") String username,
+                                   @PathVariable Map<String,String> pv) {
+      HashMap<String, Object> map = new HashMap<>();
+      map.put("id",id);
+      map.put("username",username);
+      map.put("map",pv);
+      return map;
+  }
+  ```
+
++ <font color='red '>`@RequestHeader`</font> 获取请求头信息（浏览器的KV值信息）
+
+  ```java
+  /**
+   * 请求链：http://localhost:8080/header
+   * 注解@RequestHeader获取请求头属性的3种用法
+   *  1、根据请求头属性名获取
+   *  2、封装到一个map集合中，类型必须为Map<String,String>
+   *  3、封装到HttpHeaders类中
+   * @param host 请求头属性
+   * @param acceptEncoding  请求头属性
+   * @param headers 请求头集合
+   * @param httpHeaders 请求头封装到HttpHeaders中
+   * @return map集合
+   */
+  @RequestMapping("/header")
+  public Map<String,Object> getHeader(@RequestHeader("host") String host,
+                                      @RequestHeader("Accept-Encoding") String acceptEncoding,
+                                      @RequestHeader Map<String,String> headers,
+                                      @RequestHeader HttpHeaders httpHeaders){
+      HashMap<String, Object> map = new HashMap<>();
+      map.put("host",host);
+      map.put("Accept-Encoding",acceptEncoding);
+      map.put("headers",headers);
+      map.put("httpHeaders",httpHeaders);
+      return map;
+  }
+  ```
+
++ <font color='red '>`@ModelAttribute`</font>
+
+  
+
++ <font color='red '>`@RequestParam`</font> 获取请求参数 (?后面的)
+
+  ```java
+  /**
+   * 请求链：http://localhost:8080/RequestParam?age=18&inters=basketball&inters=game
+   * 注解@RequestParam获取请求参数的3种用法：
+   *  1、根据参数名获取单个参数值（默认require=true则必须要有此参数，否则服务会报错）
+   *  2、根据参数名获取多个参数值（默认require=true则必须要有此参数，否则服务会报错）
+   *      ① 定义为 String[]，属性值保存在数组中
+   *      ②定义为 String，属性值保存在String中，逗号分隔
+   *  3、所有请求参数封装到一个map集合中，类型必须为Map<String,String> 【注意此方法对应复合属性只会保存一个值】
+   * @param age 请求参数age
+   * @param inters 请求参数inters
+   * @param interesting  请求参数inters
+   * @param params  所有的请求参数集合
+   * @return map集合
+   */
+  @RequestMapping("/RequestParam")
+  public Map<String,Object> getRequestMapping(@RequestParam("age") Integer age,
+                                              @RequestParam("inters") String[] inters,
+                                              @RequestParam("inters") String interesting,
+                                              //复合属性只会保存一个值，不会用逗号,拼接
+                                              @RequestParam Map<String,String> params){
+      HashMap<String, Object> map = new HashMap<>();
+      map.put("age",age);
+      map.put("inters",inters);
+      map.put("interesting",interesting);
+      map.put("params",params);
+      return map;
+  }
+  ```
+
++ <font color='red '>`@MatrixVariable`</font>
+
+  
+
++ <font color='red '>`@CookieValue`</font> 获取cookie信息
+
+  
+
++ <font color='red '>`@RequestBody`</font>  获取请求体信息（只有post请求才有，是请求的参数即?后面的）
+
+##### 1.2、Servlet API
+
+
+
+##### 1.3、复杂参数
+
+
+
+##### 1.4、自定义对象参数（POJO类）
+
+
+
+
+
+
 
 
 
