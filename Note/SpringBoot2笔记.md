@@ -1382,7 +1382,7 @@ debug: true
 
 ### ***1、SpringMVC自动配置概览***
 
-官方文档：
+官方文档：==修改SpringMVC的组件的默认规则的三种方式：===
 
 > Spring Boot provides auto-configuration for Spring MVC that **works well with most applications.(大多场景我们都无需自定义配置)**
 >
@@ -1422,19 +1422,19 @@ debug: true
 >
 > If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.9.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
 >
-> **不用@EnableWebMvc注解。使用** `**@Configuration**` **+** `**WebMvcConfigurer**` **自定义规则**
+> ==**1、不用@EnableWebMvc注解。使用** `**@Configuration**` **+** `**WebMvcConfigurer**` **自定义规则**==
 >
 > 
 >
 > If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
 >
-> **声明** `**WebMvcRegistrations**` **改变默认底层组件**
+> ==**2、声明** `**WebMvcRegistrations**` **改变默认底层组件**==
 >
 > 
 >
 > If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
 >
-> **使用** `**@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration 全面接管SpringMVC**`
+> ==**3、使用** `**@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration 全面接管SpringMVC**`==
 
 ### ***2、简单功能分析***
 
@@ -2072,15 +2072,231 @@ protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Ex
   }
   ```
 
-+ <font color='red '>`@MatrixVariable`</font>
++ <font color='yellow'>`@MatrixVariable `</font> 获取请求路径中的矩阵变量
+
+  在请求路径（？前面的，不包含请求参数）中，用分号 ; 来分割一个路径的条件
+
+  > 如：`https://localhost:8080/boss/1;age=20/2;age=30` 想要查找id为1，年龄大于20的boss，以及id为2，年龄大于30的员工
+  >
+  > 分号 ; 代表了一个路径中的条件
+
+  ***先理解矩阵变量的使用场景：***
+
+  正常情况下每个浏览器和服务器会有一个唯一的session，名字为jsession。每次发送请求时会把cookie带上发送给服务器。session也被当作cookie一起发送过去。
+
+  1、如果禁用了cookie，那么如何获取session域中的数据？
+
+  > url重写：`http://localhost:8080/abc;jsesssionid=xxxx `把cookie的值使用矩阵变量的方式进行传递.
 
   
 
-+ <font color='red '>`@CookieValue`</font> 获取cookie信息
+  2、矩阵变量的使用场景
 
-  
+  > ​	绝大多数都是放在请求的最后，用分号 ; 分隔，传递session
+
+​		3、矩阵变量写法
+
+>   * `/cars/sell;low=34;brand=byd,audi,yd` （复合属性逗号分隔）
+>   * `/cars/sell;low=34;brand=byd;brand=audi;brand=yd `（复合属性，单独写）
+> 		* `/boss/1;age=20/2;age=10` （放在请求地址中，作为判断条件restful风格）
+
+***用法：***
+
+==*1、修改SpringMVC的自动配置，开启矩阵变量支持*==
+
+因为SpringMVC自动配置默认是关闭矩阵变量，代码如下：
+
+```java
+/*
+ 自动配置类WebMvcAutoConfiguration.java --》 
+	WebMvcAutoConfigurationAdapter.java（内部类） --》
+		configurePathMatch()（所有的url路径处理，均是此处配置的）--》
+			UrlPathHelper.removeSemicolonContent = true（删除url中的分号;内容）
+    
+*/
+```
+
+所以我们需要修改组件的属性，开启矩阵支持（分号 ;）两种方法：==[SpringMVC自动配置概览中的方法1]==
+
+```java
+// @Configuration + WebMvcConfigurer 会自动覆盖掉自动配置中的相应配置
+@Configuration(proxyBeanMethods = false)
+public class MyConfig implements WebMvcConfigurer {
+    @Override
+    //方法1：SpringMVC自动配置概览中修改组件属性的方法1
+    public void configurePathMatch(PathMatchConfigurer configurer) {
+        UrlPathHelper urlPathHelper = new UrlPathHelper();
+        //去掉 默认去掉请求链接中分号 ; 的规则,即开启矩阵变量功能
+        urlPathHelper.setRemoveSemicolonContent(false);
+
+        configurer.setUrlPathHelper(urlPathHelper);
+    }
+
+    @Bean//直接给ioc容器中添加 WebMvcConfigurer组件
+    //方法2：SpringMVC自动配置概览中修改组件属性的方法1
+    public WebMvcConfigurer webMvcConfigurer() {
+        //直接返回接口的匿名内部类
+       return new WebMvcConfigurer() {
+           @Override
+           public void configurePathMatch(PathMatchConfigurer configurer) {
+               UrlPathHelper urlPathHelper = new UrlPathHelper();
+               //去掉 默认去掉请求链接中分号 ; 的规则,即开启矩阵变量功能
+               urlPathHelper.setRemoveSemicolonContent(false);
+
+               configurer.setUrlPathHelper(urlPathHelper);
+           }
+       };
+
+    }
+}
+```
+
+==***2、分号 ; 必须放在restful风格下使用 {xxx}，否则会报错***==
+
+请求链1：`http://localhost:8080/cars/sell;low=34;brand=byd,audi,yd`
+
+请求链2：`http://localhost:8080/cars/sell;low=34;brand=byd;brand=audi;brand=yd`
+
+均对应controller方法：`@RequestMapping("/cars/{path}")`
+
+![image-20220804170033466](.\img\image-20220804170033466.png)
+
+```java
+/**
+ * 获取请求链中的矩阵变量属性值（地址中 ;分割的）
+ * 矩阵变量放在请求路径中的，则必须是restful风格 {xxx}
+ * 注意：springBoot默认禁用掉了矩阵变量的功能：自动配置WebMvcAutoConfiguration --configurePathMatch()--UrlPathHelper.removeSemicolonContent = true(去掉url的分号;部分)
+ *      手动开启：
+ *          1、配置类中自己手动给ioc容器中添加一个WebMvcConfigurer类型的组件（@Bean方法）
+ *          2、配置类实现WebMvcConfigurer接口，重写configurePathMatch()方法
+ *
+ * @param low 矩阵变量1
+ * @param brands 矩阵变量2
+ * @param variables 矩阵变量集合
+ * @return map集合
+ */
+@RequestMapping("/cars/{path}")
+public Map<String,Object> getMatrixVariable(@MatrixVariable("low") Integer low,
+                                            @MatrixVariable("brand") String brands,
+                                            @MatrixVariable Map<String, String> variables,
+                                            //获取restful的真实路径
+                                            @PathVariable("path") String path) {
+
+    HashMap<String, Object> map = new HashMap<>();
+    map.put("low",low);
+    map.put("brand", brands);
+    map.put("variables", variables);
+    map.put("path", path);
+    return map;
+}
+```
+
+请求链3：`http://localhost:8080/boss/1;age=20/2;age=10`
+
+![image-20220804171440720](.\img\image-20220804171440720.png)
+
+```java
+@RequestMapping("/boss/{bossId}/{empId}")
+public Map<String,Object> boss(@MatrixVariable(value = "age",pathVar = "bossId") Integer bossAge,
+                               //具有相同名字的矩阵变量，通过pathVar消除歧义
+                               @MatrixVariable(value = "age",pathVar = "empId") String empAge,
+                               @PathVariable("bossId") Integer bossId,
+                               @PathVariable("empId") Integer empId) {
+
+    HashMap<String, Object> map = new HashMap<>();
+    map.put("empId",empId);
+    map.put("bossId", bossId);
+    map.put("empAge", empAge);
+    map.put("bossAge", bossAge);
+    return map;
+}
+```
+
+***注意：***
+
+> + ==必须手动开启矩阵变量解析（分号 ;）==
+> + ==必须使用restful的路径变量{xxx}，才能正确解析矩阵路径变量（分号 ;）==
+
++ <font color='red '>`@CookieValue`</font> 获取cookie信息（注意获取不到session的信息）
+
+  ```java
+  /**
+       * 请求链：
+       * 注解@CookieValue获取请求cookie的值的2种方法：
+       *  1、根据cookie名，获取对应cookie值
+       *  2、根据cookie名，获取对应cookie对象
+       *  注意：一定要写cookie名，就算只有一个cookie
+       * @param cookieValue 通过cookie名获取对应cookie值
+       * @param cookie 通过cookie名获取对应cookie对象
+       * @return map集合
+       */
+  @RequestMapping("/cookie")
+  public Map<String,Object> getCookieValue(@CookieValue("Idea-ac70e2d0") String cookieValue,
+                                           @CookieValue("_ga") Cookie cookie){
+      HashMap<String, Object> map = new HashMap<>();
+      map.put("ideaCookie",cookieValue);
+      map.put("_ga", cookie);
+      return map;
+  }
+  ```
+
+  > 创建cookie，然后通过response发送给浏览器
+  >
+  > ```java
+  > @RequestMapping("/createCookie")
+  > public String createCookie(HttpServletResponse response){
+  >     //cookie中不允许有空格
+  >     Cookie cookie = new Cookie("_ga", "there-do-not-allow-space");
+  >     cookie.setComment("cookie create test.");
+  >     cookie.setMaxAge(36000);//依据格林时间
+  >     cookie.setPath("/");
+  >     cookie.setHttpOnly(true);
+  >     cookie.setDomain("localhost");
+  >     
+  >     //返回给客户端
+  >     response.addCookie(cookie);
+  >     return "index";
+  > }
+  > ```
 
 + <font color='red '>`@RequestBody`</font>  获取请求体信息（只有post请求才有，是请求的参数即?后面的）
+
+  ```java
+  /**
+   * 请求链：http://localhost:8080/requestBody?age=18&inters=basketball&inters=game
+   * 注解@RequestBody获取post请求的请求体（即？后面的参数）
+   * @param body 参数链
+   * @return map集合
+   */
+  @RequestMapping("/requestBody")
+  public Map<String,Object> getRequestBody(@RequestBody String body){
+      HashMap<String, Object> map = new HashMap<>();
+      map.put("body",body);
+      return map;
+  }
+  ```
+
++ <font color='red'>`@RequestAttribute`</font> 获取request域属性值attribute
+
+  ```java
+  /**
+   * 获取请求域的两个方法
+   *  1、使用@RequestAttribute注解，必须写上name属性
+   *  2、使用原生的request请求获取
+   * @param value request域k1对应的属性值
+   * @param request request请求
+   * @return map集合
+   */
+  @ResponseBody
+  @RequestMapping("/success")
+  public Map<String, Object> getRequestAttribute(@RequestAttribute("k1") String value,
+                                                HttpServletRequest request) {
+      HashMap<String, Object> map = new HashMap<>();
+      map.put("k2",request.getAttribute("k2"));
+      map.put("k1", value);
+      return map;
+  }
+  ```
 
 ##### 1.2、Servlet API
 
