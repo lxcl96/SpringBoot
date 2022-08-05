@@ -49,6 +49,20 @@
             <artifactId>jquery</artifactId>
             <version>3.5.1</version>
         </dependency>
+
+        <!-- 添加 jsp 依赖-->
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-jasper</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- 添加 JSTL 支持 -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
+        </dependency>
+
+
     </dependencies>
 
     <build>
@@ -65,7 +79,46 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <!-- 打jar包依赖-->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <!--打jar包需要这个版本的依赖-->
+                <version>1.4.2.RELEASE</version>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/**</include>
+                </includes>
+                <!-- 开启过滤，用指定的参数替换directory下的文件中的参数 -->
+                <filtering>false</filtering>
+            </resource>
+
+            <resource>
+                <!--指定resources插件处理哪个目录下的资源文件-->
+                <directory>src/main/webapp</directory>
+                <!--注意此次必须要放在此目录下才能访问到-->
+                <targetPath>META-INF/resources</targetPath>
+                <includes>
+                    <include>**/**</include>
+                </includes>
+            </resource>
+        </resources>
     </build>
 
 </project>

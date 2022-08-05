@@ -1380,6 +1380,126 @@ debug: true
 
 ## 2.2、Web开发
 
+### ***0、SpringBoot下jsp和html混用并打包为jar包***
+
+​	<font color='red'>注意：Springboot默认是不支持jsp的，而且官方也不推荐，所以需要配置一下</font>
+
+####    0、目录结构
+
+![image-20220805111418466](.\img\image-20220805111418466.png)
+
+#### 	1、引入依赖插件，将webapp目录下所有资源放到META-INF/resources下
+
+因为springBoot打好的包没有webapp目录，而且所有的静态资源只从默认的静态资源目录下找`/static, /public, /META-INF/resources, /resources`，但是webapp是和classes类路径同级别的，不是类路径下的，所有只能把webapp目录下所有资源转移到MEAT-INF/resources资源下。
+
+> 如果不加这一步，只创建webapp目录则idea下运行没问题，但是打jar包后运行会报404，找不到资源
+
+```xml
+<build>
+    <plugins>
+        <!-- 1、打jar包依赖-->
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <!--打jar包需要这个版本的依赖-->
+            <version>1.4.2.RELEASE</version>
+        </plugin>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>repackage</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+	
+    
+    <resources>
+       <!--2、不修改springboot的默认静态资源目录-->
+        <resource>
+            <directory>src/main/resources</directory>
+            <includes>
+                <include>**/**</include>
+            </includes>
+            <!-- 开启过滤，用指定的参数替换directory下的文件中的参数 -->
+            <filtering>false</filtering>
+        </resource>
+		<!-- 3、重定向webapp下所所有目录资源存放到META-INF/resources下-->
+        <resource>
+            <!--指定resources插件处理哪个目录下的资源文件-->
+            <directory>src/main/webapp</directory>
+            <!--注意此次必须要放在此目录下才能访问到-->
+            <targetPath>META-INF/resources</targetPath>
+            <includes>
+                <include>**/**</include>
+            </includes>
+        </resource>
+    </resources>
+</build>
+```
+
+#### 	2、创建`src/main/webapp`目录
+
+​	因为jsp默认值只能在webapp这个目录下使用，而springboot默认是没有的，所以自己手动建一个即可。并在里面存放jsp页面！
+
+#### 	3、配置文件`application*.yaml`中配置前缀
+
+```yaml
+spring:
+    view:
+      prefix: /jsp/ # 以webapp为起点
+      suffix: .jsp
+```
+
+#### 	4、撰写controller
+
+```java
+@Controller
+@RequestMapping("/model")
+public class ModelAttributeController {
+
+    @RequestMapping("/hello")
+    public String sayHello() {
+        return "hello";
+    }
+}
+```
+
+#### 	5、配置jstl和jsp依赖
+
+***配置jstl和jsp依赖，否则打不开jsp页面只会下载hello.jsp***
+
+```xml
+ <!-- 添加 jsp 依赖-->
+ <dependency>
+     <groupId>org.apache.tomcat.embed</groupId>
+     <artifactId>tomcat-embed-jasper</artifactId>
+     <scope>provided</scope>
+ </dependency>
+ <!-- 添加 JSTL 支持 -->
+ <dependency>
+     <groupId>javax.servlet</groupId>
+     <artifactId>jstl</artifactId>
+ </dependency>
+
+```
+
+#### 6、测试
+
+访问`http://localhost:8080/model/hello`
+
+![image-20220805112953849](.\img\image-20220805112953849.png)
+
+#### 7、打jar包的目录结构
+
+![image-20220805113442771](.\img\image-20220805113442771.png)
+
+***
+
 ### ***1、SpringMVC自动配置概览***
 
 官方文档：==修改SpringMVC的组件的默认规则的三种方式：===
@@ -2036,7 +2156,21 @@ protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Ex
   }
   ```
 
-+ <font color='red '>`@ModelAttribute`</font>
++ <font color='red '>`@ModelAttribute`</font>  将值直接封装到model中，返回给view层调用
+
+  ==首先说明一下，被`@ModelAttribute`注解的方法会在`Controller`每个方法执行之前都执行，如果有返回值，则自动将该返回值加入到ModelMap中。因此对于一个`Controller`中包含多个URL的时候，要谨慎使用。==
+
+  + ***① 标注在方法上***
+
+    + 标注的方法无返回值
+
+      
+
+    + 标注的方法有返回值
+
+  + ***②  标注在参数上***
+
+  + ***③ 标注在`@RequestMapping`标注的方法上***
 
   
 

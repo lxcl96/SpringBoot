@@ -57,6 +57,13 @@ url重写：/abc;jsesssionid=xxxx 把cookie的值使用矩阵变量的方式进�
 <a href="/cars/sell;low=34;brand=byd;brand=audi;brand=yd">@MatrixVariable（矩阵变量）</a>
 <a href="/boss/1;age=20/2;age=10">@MatrixVariable（矩阵变量）/boss/{bossId}/{empId}</a>
 <br/>
+<br/>
+<a href="/model/hello">hello页面跳转</a> <br/>
+<a href="/model/hello?abc=ccc">hello页面跳转带请求参数</a> <br/>
+<a href="/model/hello">hello页面跳转</a> <br/>
+<br/>
+<br/>
+<br/>
 <form action="/save" method="post">
     测试@RequestBody获取数据 <br/>
     用户名：<input name="userName"/> <br>

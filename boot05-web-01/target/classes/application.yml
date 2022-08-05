@@ -10,5 +10,7 @@ spring:
     hiddenmethod:
       filter:
         enabled: true # 开启默认的HiddenHttpMethodFilter
-
+    view:
+      prefix: /jsp/
+      suffix: .jsp
 #      static-locations: classpath:/templates/

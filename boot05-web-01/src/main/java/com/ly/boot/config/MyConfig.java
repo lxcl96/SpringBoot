@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.util.UrlPathHelper;
 
 /**
@@ -49,4 +50,14 @@ public class MyConfig implements WebMvcConfigurer {
        };
 
     }
+
+//    @Bean
+//    public InternalResourceViewResolver internalResourceViewResolver() {
+//        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+//        viewResolver.setSuffix(".jsp");
+//        //放在类路径下
+//        viewResolver.setPrefix("../BOOT-INF/classes/static/");
+//        viewResolver.setOrder(0);
+//        return viewResolver;
+//    }
 }
