@@ -1388,7 +1388,7 @@ debug: true
 
 ![image-20220805111418466](.\img\image-20220805111418466.png)
 
-#### 	1、引入依赖插件，将webapp目录下所有资源放到META-INF/resources下
+#### 	1、引入依赖插件，目的：将webapp目录下所有资源放到META-INF/resources下
 
 因为springBoot打好的包没有webapp目录，而且所有的静态资源只从默认的静态资源目录下找`/static, /public, /META-INF/resources, /resources`，但是webapp是和classes类路径同级别的，不是类路径下的，所有只能把webapp目录下所有资源转移到MEAT-INF/resources资源下。
 
@@ -2160,6 +2160,8 @@ protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Ex
 
   ==首先说明一下，被`@ModelAttribute`注解的方法会在`Controller`每个方法执行之前都执行，如果有返回值，则自动将该返回值加入到ModelMap中。因此对于一个`Controller`中包含多个URL的时候，要谨慎使用。==
 
+  待写------------------
+
   + ***① 标注在方法上***
 
     + 标注的方法无返回值
@@ -2434,9 +2436,67 @@ public Map<String,Object> boss(@MatrixVariable(value = "age",pathVar = "bossId")
 
 ##### 1.2、Servlet API
 
+`WebRequest、ServletRequest、MultipartRequest、 HttpSession、javax.servlet.http.PushBuilder、Principal、InputStream、Reader、HttpMethod、Locale、TimeZone、ZoneId`
+
+==***全部都是`ServletRequestMethodArgumentResolver.class`解析***==
+
+```java
+// ServletRequestMethodArgumentResolver.class
+@Override
+public boolean supportsParameter(MethodParameter parameter) {
+   Class<?> paramType = parameter.getParameterType();
+   return (WebRequest.class.isAssignableFrom(paramType) ||
+         ServletRequest.class.isAssignableFrom(paramType) ||
+         MultipartRequest.class.isAssignableFrom(paramType) ||
+         HttpSession.class.isAssignableFrom(paramType) ||
+         (pushBuilder != null && pushBuilder.isAssignableFrom(paramType)) ||
+         (Principal.class.isAssignableFrom(paramType) && !parameter.hasParameterAnnotations()) ||
+         InputStream.class.isAssignableFrom(paramType) ||
+         Reader.class.isAssignableFrom(paramType) ||
+         HttpMethod.class == paramType ||
+         Locale.class == paramType ||
+         TimeZone.class == paramType ||
+         ZoneId.class == paramType);
+}
+```
+
+##### 1.3、复杂参数(SpringMVC的)
+
+**Map**、**Model（map、model里面的数据默认会被放在request的请求域  request.setAttribute）、**Errors/BindingResult、**RedirectAttributes（ 重定向携带数据）**、**ServletResponse（response携带数据）**、SessionStatus、UriComponentsBuilder、ServletUriComponentsBuilder
 
 
-##### 1.3、复杂参数
+
+==***Map，Model，ModelMap等都相当于给request域存放数据***==
+
+```java
+/**
+ * 测试复杂参数，及model和map默认会给request域存放数据 等价于request.setAttribute
+ * @param map map集合
+ * @param model model
+ * @param request request请求
+ * @param response  response响应
+ * @return 返回值
+ */
+@GetMapping("/params")
+public String testParam(Map<String,Object> map,
+                        Model model,
+                        HttpServletRequest request,
+                        HttpServletResponse response) {
+    //先判断有没有数据
+    System.out.println(map);
+    System.out.println(model.asMap());
+
+    //存放值
+    map.put("hello","world666");
+    model.addAttribute("world","hello666");
+    request.setAttribute("message","helloWorld");
+
+    response.addCookie(new Cookie("c1", "v1"));
+    return "forward:/success";
+}
+```
+
+***原理：***
 
 
 
@@ -2444,7 +2504,153 @@ public Map<String,Object> boss(@MatrixVariable(value = "age",pathVar = "bossId")
 
 
 
+#### 2、POJO封装过程
 
+
+
+#### 3、参数处理原理
+
+==***HandlerMethodArgumentResolver接口的所有实现类都默认支持一种参数解析，所以实际可用的参数获取方法也是这些***==
+
+![image-20220808161735648](\img\image-20220808161735648.png)
+
+> 针对`@PathVariable,@RequestHeader,@RequestParam,@CookieValue,@RequestBody,@MatrixVariable`等。
+>
+> 以：`http://localhost:8080/car/{id}/owner/{username}`为例
+>
+> ***核心函数方法：`DispatcherServlet#doDispatch()`***
+>
+> + `mappedHandler = getHandler(processedRequest);`获取到请求对应的处理器方法`ParameterTestController#getCar(..)`
+>
+> + `HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());`获取处理器适配器Adapter，通过此适配器才可以调用控制器方法`getCar(..)`
+>
+>   ![](\img\image-20220808140744448.png)
+>
+>   > 注：继承`AbstractHandlerMethodAdapter`抽象类的，我们可以自定义Adapter来处理特定方法。
+>
+> + `mv = ha.handle(processedRequest, response, mappedHandler.getHandler());`通过上面获取的适配器Adapter调用控制器方法`getCar(...)`
+>
+> + 进入函数内部，执行`mav = invokeHandlerMethod(request, response, handlerMethod);`
+>
+>   > `RequestMappingHandlerAdapter`类
+>
+> + 设置参数解析器
+>
+>   ```java
+>   //RequestMappingHandlerAdapter#invokeHandlerMethod()
+>   if (this.argumentResolvers != null) {
+>      invocableMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
+>   }
+>   ```
+>
+>   ![image-20220808150232410](.\img\image-20220808150232410.png)
+>
+>   ***参数解析器HandlerMethodArgumentResolver实现的接口及解析过程：***
+>
+>   ```java
+>   public interface HandlerMethodArgumentResolver {
+>   
+>      /*
+>       supportsParameter()判断是否支持指定参数的解析
+>       如果支持
+>       resolveArgument()解析参数
+>       */
+>      boolean supportsParameter(MethodParameter parameter);
+>       
+>      @Nullable
+>      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+>            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
+>   
+>   }
+>   ```
+>
+>   ***返回值处理器：支持返回值类型的格式***
+>
+>   ```java
+>   if (this.returnValueHandlers != null) {
+>      invocableMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
+>   }
+>   ```
+>
+>   ![image-20220808151401368](.\img\image-20220808151401368.png)
+>
+>   
+>
+> + 封装好相应的组件，开始解析调用`invocableMethod.invokeAndHandle(webRequest, mavContainer);`
+>
+>   ```java
+>   //真正执行控制器方法：1、获取到解析后的参数 2、执行控制器方法
+>   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
+>   	//里面1、获取到解析后的参数
+>   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
+>   	
+>   	//里面2、执行控制器方法
+>   	return doInvoke(args);
+>   ```
+>
+>   + ***里面1、获取到解析后的参数***
+>
+>     ```java
+>     protected Object[] getMethodArgumentValues(NativeWebRequest request, @Nullable ModelAndViewContainer mavContainer,
+>           Object... providedArgs) throws Exception {
+>       //获取方法参数的包装类
+>        MethodParameter[] parameters = getMethodParameters();
+>        if (ObjectUtils.isEmpty(parameters)) {
+>            //如果没有 直接返回
+>           return EMPTY_ARGS;
+>        }
+>     
+>        Object[] args = new Object[parameters.length];
+>        for (int i = 0; i < parameters.length; i++) {
+>           MethodParameter parameter = parameters[i];
+>           parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
+>           args[i] = findProvidedArgument(parameter, providedArgs);
+>           if (args[i] != null) {
+>              continue;
+>           }
+>            
+>            /*
+>            HandlerMethodArgumentResolver接口的两步骤：
+>            		1、supportsParameter 是否支持
+>            		2、resolveArgument 解析
+>            */
+>            //判断支持27中参数解析器是否支持当前参数，不支持直接异常 
+>            //【里面有缓存机制】先用缓存判断是否可以解析，如果不行再从27个中遍历
+>           if (!this.resolvers.supportsParameter(parameter)) {
+>              throw new IllegalStateException(formatArgumentError(parameter, "No suitable resolver"));
+>           }
+>           try {
+>               //支持，就去遍历获取解析 【方法内部见下面】
+>              args[i] = this.resolvers.resolveArgument(parameter, mavContainer, request, this.dataBinderFactory);
+>           }
+>           catch (Exception ex) {
+>              if (logger.isDebugEnabled()) {
+>                 String exMsg = ex.getMessage();
+>                 if (exMsg != null && !exMsg.contains(parameter.getExecutable().toGenericString())) {
+>                    logger.debug(formatArgumentError(parameter, exMsg));
+>                 }
+>              }
+>              throw ex;
+>           }
+>        }
+>         //返回解析后的参数
+>        return args;
+>     }
+>     ```
+>
+>     ```java
+>     	public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+>     			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+>     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
+>     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
+>     		...
+>                 
+>             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
+>     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
+>     	}
+>     ```
+>
+>     
 
 
 
