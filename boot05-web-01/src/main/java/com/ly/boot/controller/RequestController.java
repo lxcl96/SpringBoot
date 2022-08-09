@@ -1,11 +1,9 @@
 package com.ly.boot.controller;
 
+import com.ly.boot.pojo.Person;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -81,5 +79,18 @@ public class RequestController {
 
         response.addCookie(new Cookie("c1", "v1"));
         return "forward:/success";
+    }
+
+    /**
+     * 请求数据绑定JavaBean
+     * @param person 要被封装的bean
+     * @return person对象
+     */
+    @ResponseBody
+    @PostMapping("/saveuser")
+    public Person testPojoParam(Person person) {
+        System.out.println(person);
+
+        return person;
     }
 }

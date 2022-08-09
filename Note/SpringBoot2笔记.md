@@ -1,5 +1,9 @@
 
 
+[TOC]
+
+
+
 # 0、前提准备
 
 ## 学习要求：
@@ -1500,7 +1504,7 @@ public class ModelAttributeController {
 
 ***
 
-### ***1、SpringMVC自动配置概览***
+### <font color='red'>***< 1、SpringMVC自动配置概览***</font>
 
 官方文档：==修改SpringMVC的组件的默认规则的三种方式：===
 
@@ -1509,52 +1513,37 @@ public class ModelAttributeController {
 > The auto-configuration adds the following features on top of Spring’s defaults:
 >
 > - Inclusion of `ContentNegotiatingViewResolver` and `BeanNameViewResolver` beans.
->
-> - - 内容协商视图解析器和BeanName视图解析器
->
+>  + <font color='red'>内容协商视图解析器和BeanName视图解析器</font>
 > - Support for serving static resources, including support for WebJars (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-static-content))).
->
-> - - 静态资源（包括webjars）
->
+>  + <font color='red'>静态资源（包括webjars）</font>
 > - Automatic registration of `Converter`, `GenericConverter`, and `Formatter` beans.
->
-> - - 自动注册 `Converter，GenericConverter，Formatter `
->
+>  + <font color='red'>自动注册 `Converter，GenericConverter，Formatter `</font>
 > - Support for `HttpMessageConverters` (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-message-converters)).
->
-> - - 支持 `HttpMessageConverters` （后来我们配合内容协商理解原理）
->
+>  + <font color='red'>支持 `HttpMessageConverters` （后来我们配合内容协商理解原理）</font>
 > - Automatic registration of `MessageCodesResolver` (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-message-codes)).
->
-> - - 自动注册 `MessageCodesResolver` （国际化用）
->
+>  + <font color='red'>自动注册 `MessageCodesResolver` （国际化用）</font>
 > - Static `index.html` support.
->
-> - - 静态index.html 页支持
->
+>  + <font color='red'>静态index.html 页支持</font>
 > - Custom `Favicon` support (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-favicon)).
->
-> - - 自定义 `Favicon`  
->
+>  + <font color='red'>自定义 `Favicon`  </font>
 > - Automatic use of a `ConfigurableWebBindingInitializer` bean (covered [later in this document](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-spring-mvc-web-binding-initializer)).
->
-> - - 自动使用 `ConfigurableWebBindingInitializer` ，（DataBinder负责将请求数据绑定到JavaBean上）
->
-> If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.9.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
->
-> ==**1、不用@EnableWebMvc注解。使用** `**@Configuration**` **+** `**WebMvcConfigurer**` **自定义规则**==
->
+>  + <font color='red'>自动使用 `ConfigurableWebBindingInitializer` ，（DataBinder负责将请求数据绑定到JavaBean上）</font>
+> 
+>If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.9.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
+> 
+>==**1、不用@EnableWebMvc注解。使用** `**@Configuration**` **+** `**WebMvcConfigurer**` **自定义规则**==
 > 
 >
-> If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
->
-> ==**2、声明** `**WebMvcRegistrations**` **改变默认底层组件**==
->
+> 
+>If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
+> 
+>==**2、声明** `**WebMvcRegistrations**` **改变默认底层组件**==
 > 
 >
-> If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
->
-> ==**3、使用** `**@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration 全面接管SpringMVC**`==
+> 
+>If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
+> 
+>==**3、使用** `**@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration 全面接管SpringMVC**`==
 
 ### ***2、简单功能分析***
 
@@ -2479,7 +2468,7 @@ public boolean supportsParameter(MethodParameter parameter) {
  */
 @GetMapping("/params")
 public String testParam(Map<String,Object> map,
-                        Model model,
+                        Model model, //model和map其实是同一个对象
                         HttpServletRequest request,
                         HttpServletResponse response) {
     //先判断有没有数据
@@ -2496,13 +2485,174 @@ public String testParam(Map<String,Object> map,
 }
 ```
 
-***原理：***
+***原理：参数解析器 argumentResolvers+ 返回值处理器returnValueHandlers***
 
+> ***1、参数解析器argumentResolvers***
+>
+> + 参数`Map`是被`MapMethodProcessor.class`解析，==所以model和map其实是同一个对象==
+>
+>   > 底层实际是`ModelMap`，所以参数可以用`ModelMap`代替
+>   >
+>   > ```java
+>   > //ModelAndViewContainer#getModel(..);
+>   > private final ModelMap defaultModel = new BindingAwareModelMap();//底层就是ModelMap
+>   > ...
+>   > if (useDefaultModel()) {
+>   >     return this.defaultModel;//就是上面的
+>   > }
+>   > ```
+>
+> + 参数`Model`是被`ModelMethodProcessor.class`解析，==所以model和map其实是同一个对象==
+>
+>   > 底层实际是`ModelMap`，所以参数可以用`ModelMap`代替
+>   >
+>   > ```java
+>   > //ModelAndViewContainer#getModel(..);
+>   > private final ModelMap defaultModel = new BindingAwareModelMap();//底层就是ModelMap
+>   > ...
+>   > if (useDefaultModel()) {
+>   >     return this.defaultModel;//就是上面的
+>   > }
+>   > ```
+>   >
+>   > ![image-20220809141309469](.\img\image-20220809141309469.png)
+>
+> + 参数`request`是被`ServletRequestMethodArgumentResolver`解析
+>
+> + 参数`response`是被`ServletResponseMethodArgumentResolver.class`解析
+>
+> ***2、返回值处理器returnValueHandlers***
+>
+> ```java
+> /*
+> 	1、DispatcherServlet#doDispatch(..);
+> 	2、DispatcherServlet#processDispatchResult(..); //执行完拦截器后进行最后的视图渲染工作
+> 	3、DispatcherServlet#render(..); 
+> 	4、AbstractView#render(..);
+> 	5、InternalResourceView#renderMergedOutputModel(..);//没有配置模板引擎，则默认都是内部资源视图解析器InternalResourceViewResolver处理的
+> 	6、AbstractView#exposeModelAsRequestAttributes(..);//最终暴露/存放在request域中
+> 
+> */
+> protected void exposeModelAsRequestAttributes(Map<String, Object> model,
+>       HttpServletRequest request) throws Exception {
+> //底层原理将model，或map的数据存放到request域中
+>    model.forEach((name, value) -> {
+>       if (value != null) {
+>          request.setAttribute(name, value);
+>       }
+>       else {
+>          request.removeAttribute(name);
+>       }
+>    });
+> }
+> ```
+>
+> ***返回值处理器：支持返回值类型的格式***
+>
+> ```java
+> if (this.returnValueHandlers != null) {
+>    invocableMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
+> }
+> ```
+>
+> ![image-20220808151401368](.\img\image-20220808151401368.png)
 
+##### 1.4、自定义对象参数（POJO类，普通JavaBean）
 
-##### 1.4、自定义对象参数（POJO类）
+```html
+<form action="/saveuser" method="post">
+    姓名： <input name="userName" value="zhangsan"/> <br/>
+    年龄： <input name="age" value="18"/> <br/>
+    生日： <input name="birth" value="2019/12/10"/> <br/>
+    <!--级联赋值 -->
+    宠物姓名：<input name="pet.name" value="阿猫"/><br/>
+    宠物年龄：<input name="pet.age" value="5"/> <br/>
+<!--    宠物： <input name="pet" value="啊猫,3"/> <br/>-->
+    <input type="submit" value="保存"/>
+</form>
+```
 
+```java
+@ResponseBody
+@PostMapping("/saveuser")
+public Person testPojoParam(Person person) {
+    System.out.println(person);
+    return person;
+}
+```
 
+***原理：参数解析器 argumentResolvers***
+
+> ***1、参数解析器支持类型判断supportsParameter()***
+>
+> + 参数`Person`即普通JavaBean是被`ServletModelAttributeMethodProcessor.class`解析的
+>
+> ```java
+> /*
+> 	注意参数解析器argumentResolvers中会有两个ServletModelAttributeMethodProcessor组件
+> 	1、this.annotationNotRequired = false 专门用于处理@ModelAttribute注解
+> 	2、this.annotationNotRequired = true，用于处理非简单参数类型
+> */
+> @Override
+> 
+> //支持的数据类型
+> public boolean supportsParameter(MethodParameter parameter) {
+>    return (parameter.hasParameterAnnotation(ModelAttribute.class) ||
+>          (this.annotationNotRequired && !BeanUtils.isSimpleProperty(parameter.getParameterType())));
+> }
+> 
+> //所有的简单类型如void，Enum，CharSequence，Number，Date，Temporal，URI，URL，Locale，Class
+> public static boolean isSimpleValueType(Class<?> type) {
+>         return Void.class != type 
+>             	&& Void.TYPE != type 
+>             	&& (ClassUtils.isPrimitiveOrWrapper(type) 
+>                 || Enum.class.isAssignableFrom(type) 
+>                 || CharSequence.class.isAssignableFrom(type) 
+>                 || Number.class.isAssignableFrom(type) 
+>                 || Date.class.isAssignableFrom(type) 
+>                 || Temporal.class.isAssignableFrom(type) 
+>                 || URI.class == type 
+>                 || URL.class == type 
+>                 || Locale.class == type 
+>                 || Class.class == type);
+>     }
+> ```
+>
+> ***2、参数解析器解析参数resolveArgument()***
+>
+> + 创建Person bean实例，利用的是无参构造器
+>
+>   ```java
+>   attribute = createAttribute(name, parameter, binderFactory, webRequest);
+>   ```
+>
+> + 由binder工厂创建一个binder数据绑定器，进行数据绑定(利用里面超多的类型转换器进行转换)
+>
+>   ```java
+>   WebDataBinder binder = binderFactory.createBinder(webRequest, attribute, name);
+>   ```
+>
+> + 经过层层包装，然后循环遍历需要绑定的值集合，进行类型转化（将String转化为需要的类型）
+>
+>   ```java
+>   //AbstractNestablePropertyAccessor#processLocalProperty(..)
+>   valueToApply = this.convertForProperty(tokens.canonicalName, oldValue, originalValue, ph.toTypeDescriptor());
+>   
+>   //转化的设计思想和参数解析器argumentResolvers解析参数完全一样
+>   //1、先从缓存取 适合的类型转化器
+>   //2、取不到，就循环遍历看看是否支持将 【当前类型】转换为 【目标类型】
+>   //3、找到了加入缓存中
+>   ```
+>
+> + 将转化完成的值，通过反射绑定到Person属性上
+>
+>   ```java
+>   ph.setValue(valueToApply);
+>   ```
+>
+> ![image-20220809163620157](\img\image-20220809163620157.png)
+>
+> 注：此处的转换器convert，就是前面**< 1、SpringMVC自动配置概览***中提到的
 
 #### 2、POJO封装过程
 
@@ -2563,16 +2713,6 @@ public String testParam(Map<String,Object> map,
 >   
 >   }
 >   ```
->
->   ***返回值处理器：支持返回值类型的格式***
->
->   ```java
->   if (this.returnValueHandlers != null) {
->      invocableMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
->   }
->   ```
->
->   ![image-20220808151401368](.\img\image-20220808151401368.png)
 >
 >   
 >
