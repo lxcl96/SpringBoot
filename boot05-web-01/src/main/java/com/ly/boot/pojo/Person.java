@@ -1,5 +1,6 @@
 package com.ly.boot.pojo;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
@@ -13,6 +14,7 @@ import java.util.Date;
  */
 @Data
 @ToString
+@AllArgsConstructor
 public class Person {
     private String userName;
     private Integer age;

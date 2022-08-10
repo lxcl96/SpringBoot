@@ -1,7 +1,9 @@
 package com.ly.boot.config;
 
+import com.ly.boot.convert.MyConvert;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -60,4 +62,9 @@ public class MyConfig implements WebMvcConfigurer {
 //        viewResolver.setOrder(0);
 //        return viewResolver;
 //    }
+
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+        registry.addConverter(new MyConvert());
+    }
 }

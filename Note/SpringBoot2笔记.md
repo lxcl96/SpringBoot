@@ -2449,7 +2449,7 @@ public boolean supportsParameter(MethodParameter parameter) {
 }
 ```
 
-##### 1.3、复杂参数(SpringMVC的)
+##### 1.3、复杂参数Map和Model
 
 **Map**、**Model（map、model里面的数据默认会被放在request的请求域  request.setAttribute）、**Errors/BindingResult、**RedirectAttributes（ 重定向携带数据）**、**ServletResponse（response携带数据）**、SessionStatus、UriComponentsBuilder、ServletUriComponentsBuilder
 
@@ -2654,11 +2654,78 @@ public Person testPojoParam(Person person) {
 >
 > 注：此处的转换器convert，就是前面**< 1、SpringMVC自动配置概览***中提到的
 
-#### 2、POJO封装过程
+#### 2、POJO封装过程（自定义转换器convert）
 
+不通过级联赋值，使用新的接口赋值方法：
 
+```html
+<form action="/saveuser" method="post">
+    姓名： <input name="userName" value="zhangsan"/> <br/>
+    年龄： <input name="age" value="18"/> <br/>
+    生日： <input name="brith" value="2019/12/10"/> <br/>
+<!--    宠物姓名：<input name="pet.name" value="阿猫"/><br/>-->
+<!--    宠物年龄：<input name="pet.age" value="5"/> <br/>-->
+    宠物： <input name="pet" value="啊猫,3"/> <br/>
+    <input type="submit" value="保存"/>
+</form>
+```
 
-#### 3、参数处理原理
+则此时提交到控制器handler，必须会报错（因为没有响应的转换器convert）
+
+```java
+@ResponseBody
+@PostMapping("/saveuser")
+public Person testPojoParam(Person person) {
+    System.out.println(person);
+    return person;
+}
+```
+
+> ![image-20220810141518323](img\image-20220810141518323.png)
+
+***解决方法：自定义转换器***
+
+依旧重写convert接口进行类型转化，配置类继承WebMvcConfigurer接口，向ioc容器添加转化器。
+
+***1、自定义转换器convert，处理自定义的数据***
+
+```java
+public class MyConvert implements Converter<String, Pet> {
+    /**
+     * 专门来处理 pet=阿猫,3 这样的数据封装到Person.pet中，即【名字,年龄】
+     * @param source 前端传递来的字符串（名字）
+     * @return 封装好的pet
+     */
+    @Override
+    public Pet convert(String source) {
+        //简单的处理
+        String[] sourceArr = source.split(",");
+        String name = sourceArr[0]!=null?sourceArr[0].trim():"";
+        String age = sourceArr[1]!=null?sourceArr[1].trim():"";
+        return new Pet(name,age);
+    }
+}
+```
+
+***2、将自定义的转换器convert，添加到ioc容器中***
+
+```java
+@Configuration(proxyBeanMethods = false)
+public class MyConfig implements WebMvcConfigurer {
+ 
+ 	@Override
+    public void addFormatters(FormatterRegistry registry) {
+        //当然也可以通过自动注入
+        registry.addConverter(new MyConvert());
+    }
+}
+```
+
+***3、直接使用即可***
+
+***
+
+#### 3、普通注解参数处理原理
 
 ==***HandlerMethodArgumentResolver接口的所有实现类都默认支持一种参数解析，所以实际可用的参数获取方法也是这些***==
 
@@ -2699,18 +2766,18 @@ public Person testPojoParam(Person person) {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->   
+>     
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->       
+>         
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->   
+>     
 >   }
 >   ```
 >
@@ -2723,7 +2790,7 @@ public Person testPojoParam(Person person) {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	
+>   	  
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2739,7 +2806,7 @@ public Person testPojoParam(Person person) {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->     
+>         
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2748,7 +2815,7 @@ public Person testPojoParam(Person person) {
 >           if (args[i] != null) {
 >              continue;
 >           }
->            
+>                
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2784,19 +2851,52 @@ public Person testPojoParam(Person person) {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                 
+>                     
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
 >     ```
 >
->     
-
-
-
-
 
 ### ***4、响应数据与内容协商***
+
+![image-20220810150001330](img\image-20220810150001330.png)
+
+
+
+#### 1、响应JSON实现
+
+##### 	1、使用`JackSon + @ResponseBody`自动封装
+
+```xml
+<!-- spring-boot-starter-webh场景启动器内部配置json启动器-->
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-json</artifactId>
+  <version>2.7.2</version>
+  <scope>compile</scope>
+</dependency>
+```
+
+##### 	2、HTTPMessageConverter响应原理
+
+即返回值Json数据的响应原理：*返回值解析器*，在进行参数解析前会把参数解析器`argumentResolvers`和返回值处理器`returnValueHandlers`配置好。
+
+![image-20220810152418967](img\image-20220810152418967.png)
+
+> 说明可以和参数解析器argumentResolvers，类型转换器convert一样自己配置
+
+
+
+
+
+
+
+#### 2、
+
+
+
+
 
 
 
