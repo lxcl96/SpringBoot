@@ -2,6 +2,7 @@ package com.ly.boot.controller;
 
 import com.ly.boot.pojo.Person;
 import com.ly.boot.pojo.Pet;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,13 @@ public class ResponseTestController {
     @GetMapping("/test/person")
     public Person getPerson() {
         return new Person("zhangSan",28,new Date(),new Pet("liSi","3"));
+    }
+
+    @ResponseBody//此注解找到对应的返回值处理器RequestResponseBodyMethodProcessor -->然后调用对应的消息转换器messageConverter
+    @GetMapping("/file")
+    public FileSystemResource getFile() {
+        //自己尝试下一个返回Resource类型的，看看是谁在处理并补充完整
+        return null;
     }
 
 }

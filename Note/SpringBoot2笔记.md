@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->     
+>       
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->         
+>           
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->     
+>       
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	  
+>   	    
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->         
+>             
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                
+>                    
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                     
+>                         
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -2878,7 +2878,15 @@ public class MyConfig implements WebMvcConfigurer {
 </dependency>
 ```
 
-##### 	2、HTTPMessageConverter响应原理
+***原理：***
+
+<font color='red'>也是实现一个接口`HandlerMethodReturnValueHandler`，和参数解析器的处理流程类似。</font>
+
++ <font color='red'>1、挨个遍历所有的处理器`supportsReturnType()`，看看是否支持当前返回类型的解析</font>
++ <font color='red'>2、`handleReturnValue()`处理返回值</font>
++ ![image-20220810200855461](\img\image-20220810200855461.png)
+
+***
 
 即返回值Json数据的响应原理：*返回值解析器*，在进行参数解析前会把参数解析器`argumentResolvers`和返回值处理器`returnValueHandlers`配置好。
 
@@ -2886,11 +2894,139 @@ public class MyConfig implements WebMvcConfigurer {
 
 > 说明可以和参数解析器argumentResolvers，类型转换器convert一样自己配置
 
+```java
+//1、DispatcherServlet.class
+mav = invokeHandlerMethod(request, response, handlerMethod);
+//2、RequestMappingHandlerAdapter.class
+invocableMethod.invokeAndHandle(webRequest, mavContainer);
+//3、ServletInvocableHandlerMethod.class
+try {
+    //处理返回值
+    this.returnValueHandlers.handleReturnValue(
+        returnValue, getReturnValueType(returnValue), mavContainer, webRequest);
+}
+
+//4、HandlerMethodReturnValueHandlerComposite.class
+//选择出可以处理当前控制器方法返回值，循环遍历调用supportsReturnType()方法								-->RequestResponseBodyMethodProcessor.java 处理标注@ResponseBody注解的
+HandlerMethodReturnValueHandler handler = selectHandler(returnValue, returnType);
+
+//5、HandlerMethodReturnValueHandlerComposite.class
+//处理返回值（使用消息转换器messageConvert）
+handler.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
+```
+
+> ***选择出合适的返回值处理器，处理@ResponseBody***
+>
+> ```java
+> @Nullable
+> private HandlerMethodReturnValueHandler selectHandler(@Nullable Object value, MethodParameter returnType) {
+>     //异步判断
+>    boolean isAsyncValue = isAsyncReturnValue(value, returnType);
+>    for (HandlerMethodReturnValueHandler handler : this.returnValueHandlers) {
+>       if (isAsyncValue && !(handler instanceof AsyncHandlerMethodReturnValueHandler)) {
+>          continue;
+>       }
+>        //HandlerMethodReturnValueHandler接口的方法
+>       if (handler.supportsReturnType(returnType)) {
+>          return handler;
+>       }
+>    }
+>    return null;
+> }
+> ```
+>
+> ***处理器处理返回值***
+>
+> ```java
+> @Override
+> public void handleReturnValue(@Nullable Object returnValue, MethodParameter returnType,
+>       ModelAndViewContainer mavContainer, NativeWebRequest webRequest)
+>       throws IOException, HttpMediaTypeNotAcceptableException, HttpMessageNotWritableException {
+>    //true表示当前请求已经被完全处理了
+>    mavContainer.setRequestHandled(true);
+>     //包装后的请求request
+>    ServletServerHttpRequest inputMessage = createInputMessage(webRequest);
+>     //包装后的响应response
+>    ServletServerHttpResponse outputMessage = createOutputMessage(webRequest);
+> 
+>    // 最关键的 通过消息转换器messageConverter写入返回json数据
+>    writeWithMessageConverters(returnValue, returnType, inputMessage, outputMessage);
+> }
+> ```
+
+##### 2、HTTPMessageConverter响应原理（接上原理writeWithMessageConverters方法）
+
+返回值处理器向response响应通过消息转换器messageConverter写入返回数据
+
+> 补充***内容协商***：即浏览器发送请求时就规定好了接受什么类型的数据，以请求头方式发送
+>
+> 就是下面的Aceept：后面的
+>
+> ![image-20220810202601904](img\image-20220810202601904.png)
+>
+> `其中q表示为权重，权重值约定表示优先级越高`，所有html，xhtml+xml，xml权重为0.9优先级最高
+>
+> 后端经常用`MediaType`类型表示一个媒体类型，（html或xml或....）
+
+```java
+//AbstractMessageConverterMethodProcessor#writeWithMessageConverters(..)
+
+MediaType selectedMediaType = null;
+//1、内容协商返回什么内容，此处是先从response中尝试获取前面设置的返回类型（null）
+MediaType contentType = outputMessage.getHeaders().getContentType();
+boolean isContentTypePreset = contentType != null && contentType.isConcrete();
+if (isContentTypePreset) {
+   if (logger.isDebugEnabled()) {
+      logger.debug("Found 'Content-Type:" + contentType + "' in response");
+   }
+   selectedMediaType = contentType;
+}
+
+...
+
+//2、获取浏览器可以接受的媒体类型,就是上面补充的内容协商的Accept 【html,xml等】
+acceptableTypes = getAcceptableMediaTypes(request);
+
+//3、获取合适的内容转换器，判断将要返回的数据格式类型
+List<MediaType> producibleTypes = getProducibleMediaTypes(request, valueType, targetType);
 
 
+//4、判断请求预接受类型 Accept是否兼容，要返回的数据类型 【不兼容会报错】
+List<MediaType> mediaTypesToUse = new ArrayList<>();
+for (MediaType requestedType : acceptableTypes) {
+    for (MediaType producibleType : producibleTypes) {
+        if (requestedType.isCompatibleWith(producibleType)) {
+            mediaTypesToUse.add(getMostSpecificMediaType(requestedType, producibleType));
+        }
+    }
+}
 
+//5、将要返回的媒体类型排序后，判断是不是所有的【*/*】，如果是Concrete具体的不带*的，则设置返回头类型就是该mediaType  即application/json;q=0.8
+MediaType.sortBySpecificityAndQuality(mediaTypesToUse);
+for (MediaType mediaType : mediaTypesToUse) {
+    if (mediaType.isConcrete()) {
+        selectedMediaType = mediaType;
+        break;
+    }
+    else if (mediaType.isPresentIn(ALL_APPLICATION_MEDIA_TYPES)) {
+        selectedMediaType = MediaType.APPLICATION_OCTET_STREAM;
+        break;
+    }
+}
 
+//6、遍历SpringMVC中的所有消息转换器messageConverters，根据接口HttpMessageConverter的canWrite(mediaType)判断哪个消息转换器可以把返回的Person对象转化为媒体类型mediaType为application/json的									-->MappingJackson2HttpMessageConverter.class 进行处理
+```
 
+***SpringMVC默认的消息转化器，及其支持的类型***
+
+![image-20220810211231880](img\image-20220810211231880.png)
+
+***消息转换器messageConverter作用：***看是否支持此class类型的对象，转化为MediaType类型的数据
+
+> 举例：如接口`HttpMessageConverter接口`的两个方法
+>
+> + `canRead()`： 某个消息转换器是否支持将`json数据`，转化为`Person对象`的
+> + `canWrite()`： 某个消息转换器是否支持将`Person对象`，转化为`application/json`媒体类型的
 
 #### 2、
 
