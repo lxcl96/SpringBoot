@@ -27,7 +27,7 @@ public class ResponseTestController {
     @GetMapping("/file")
     public FileSystemResource getFile() {
         //自己尝试下一个返回Resource类型的，看看是谁在处理并补充完整
-        return null;
+        return new FileSystemResource("D:\\company\\auto_service\\iauto-4.5.2.all.42992.20200511\\taskmanagement\\config\\ice.conf");
     }
 
 }
