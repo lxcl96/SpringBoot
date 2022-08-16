@@ -13,4 +13,6 @@ spring:
     view:
       prefix: /jsp/
       suffix: .jsp
+    contentnegotiation:
+      favor-parameter: true
 #      static-locations: classpath:/templates/

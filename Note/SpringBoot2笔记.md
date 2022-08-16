@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->         
+>             
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->             
+>                 
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->         
+>             
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	      
+>   	          
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                 
+>                         
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                        
+>                                
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                             
+>                                     
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3034,13 +3034,141 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 根据客户端接收能力不同，返回不同媒体类型的数据。
 
+***以返回xml和返回Json为例子：***
 
+##### 2.1、返回xml
 
++ 引入xml依赖，方便直接返回xml格式
 
+  ```xml
+  <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
+  </dependency>
+  ```
 
++ 重启服务，通过工具postman发送请求，（修改请求头ACCEPT：xml）
 
++ 发送请求`http://localhost:8080/test/person`
 
+  ![image-20220816134729955](img\image-20220816134729955.png)
 
+##### 2.2、返回json
+
+重复2.1中返回`xml步骤`，将`Accept=application/json`即可
+
+##### 2.3、开启浏览器参数方式内容协商功能
+
+即通过请求参数方式手动规定Accept类型
+
++ ***配置文件中开启：***
+
+  ```yaml
+  spring:
+    mvc:
+      contentnegotiation:
+        favor-parameter: true
+  ```
+
++ ***通过请求参数携带`format=xxx`格式，指定返回数据类型***
+
+​		`http://localhost:8080/test/person?format=json`
+
+​		注：底层封装好了，只支持xml和json两种数据类型
+
++ ***原理***
+
+  > 配置文件中开启`favorParameter`参数，则会给ioc容器中加入第2个内容协商器`ParameterContentNegotiationStrategy.class`，且其优先级在`HeaderContentNegotiationStrategy.class`之前，所以在获取客户端可接受的数据类型时直接调用了参数协商器进行处理，获得客户端可以接受的数据类型`application/json`，直接return，不再调用请求头内容协商器。
+  >
+  > ```java
+  > @Override
+  > public List<MediaType> resolveMediaTypes(NativeWebRequest request) throws HttpMediaTypeNotAcceptableException {
+  >    for (ContentNegotiationStrategy strategy : this.strategies) {
+  >        //获得application/json
+  >       List<MediaType> mediaTypes = strategy.resolveMediaTypes(request);
+  >        //不等于*/*
+  >       if (mediaTypes.equals(MEDIA_TYPE_ALL_LIST)) {
+  >          continue;
+  >       }
+  >        //直接返回
+  >       return mediaTypes;
+  >    }
+  >    return MEDIA_TYPE_ALL_LIST;
+  > }
+  > ```
+
++ 
+
+***2.4、内容协商原理（根据客户端接收能力不同，返回相应的格式）***
+
+前提：控制器方法必须要被`@ResponseBody`注解标注才能被`RequestResponseBodyMethodProcessor.class`处理，从而调用内容协商功能
+
++ 从response获取响应头，为了判断前面有没有处理过，如果前面已经设置了响应头则直接使用（一般都是没有）
+
+  ```java
+  //writeWithMessageConverters#AbstractMessageConverterMethodProcessor（）
+  MediaType contentType = outputMessage.getHeaders().getContentType();
+  ```
+
++ 如果第一步没找到响应头，调用内容协商策略`HeaderContentNegotiationStrategy.class`获取客户端能接受的数据类型（Accpt）
+
+  ```java
+  //writeWithMessageConverters#AbstractMessageConverterMethodProcessor（）							底层其实就是request处获取request.getHeaderValues(HttpHeaders.ACCEPT);
+  acceptableTypes = getAcceptableMediaTypes(request);
+  ```
+
+  获取到客户端能接受的类型：`application/xhtml+xml`
+
+  > 协商策略方法有很多，默认只加载请求头策略`HeaderContentNegotiationStrategy.class`
+  >
+  > ![image-20220816153436862](img\image-20220816153436862.png)
+
++ 根据ioc容器中所有的messageConverter消息转换器看看，谁能够处理返回类型为Person的，并将其记录将Person处理后的类型
+
+  ```java
+  //writeWithMessageConverters#AbstractMessageConverterMethodProcessor（）
+  List<MediaType> producibleTypes = getProducibleMediaTypes(request, valueType, targetType);
+  ```
+
+  ![image-20220816145251507](\img\image-20220816145251507.png)
+
+  > 导入了jackSon的xml包，会自动加入到ioc容器中
+
+  处理后（可用于返回）的数据类型总和：
+
+  ![image-20220816145410385](\img\image-20220816145410385.png)
+
++ 客户端只能接受`application/xhtml+xml`1种格式，但是服务器却可以产生10种数据格式。则此时就需要找到最佳匹配
+
+  ```java
+  //writeWithMessageConverters#AbstractMessageConverterMethodProcessor（）
+  List<MediaType> mediaTypesToUse = new ArrayList<>();
+  for (MediaType requestedType : acceptableTypes) {
+     for (MediaType producibleType : producibleTypes) {
+         //兼容类型匹配
+        if (requestedType.isCompatibleWith(producibleType)) {
+           mediaTypesToUse.add(getMostSpecificMediaType(requestedType, producibleType));
+        }
+     }
+  }
+  ```
+
+  ![image-20220816145958881](img\image-20220816145958881.png)
+
++ 客户端接收`application/xhtml+xml`格式，服务器最优匹配格式`application/xhtml+xml`，则接下来就是看看哪个消息转换器可以将`Person`类型，转化成`application/xhtml+xml`类型
+
+```java
+//writeWithMessageConverters#AbstractMessageConverterMethodProcessor（）
+for (HttpMessageConverter<?> converter : this.messageConverters) {
+   GenericHttpMessageConverter genericConverter = (converter instanceof GenericHttpMessageConverter ?
+         (GenericHttpMessageConverter<?>) converter : null);
+    //每个messageConverter进行判断
+   if (genericConverter != null ?
+         ((GenericHttpMessageConverter) converter).canWrite(targetType, valueType, selectedMediaType) :
+         converter.canWrite(valueType, selectedMediaType)) {...}
+```
+
++ 找到了合适的消息转换器，就进行后续操作写入到response，并响应出去
 
 
 
