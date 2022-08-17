@@ -2654,7 +2654,7 @@ public Person testPojoParam(Person person) {
 >
 > 注：此处的转换器convert，就是前面**< 1、SpringMVC自动配置概览***中提到的
 
-#### 2、POJO封装过程（自定义转换器convert）
+#### ==2、自定义转换器convert==
 
 不通过级联赋值，使用新的接口赋值方法：
 
@@ -3059,7 +3059,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 ##### 2.3、开启浏览器参数方式内容协商功能
 
-即通过请求参数方式手动规定Accept类型
+即通过请求参数方式`(format=xxxx)`手动规定Accept类型
 
 + ***配置文件中开启：***
 
@@ -3074,7 +3074,138 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 ​		`http://localhost:8080/test/person?format=json`
 
-​		注：底层封装好了，只支持xml和json两种数据类型
+​		==注：底层封装好了，默认支持xml和json两种数据类型（因为实际就导入这两个依赖）==
+
+> ​		即引入依赖，存在相应的class类且可被加载时，就支持什么什么格式，默认支持`atom,rss.xml,json.smile,cbor`,必须要存在相应的类（见条件）
+>
+> ***配置自定义格式：***
+>
+> ​	配置类中配置支持返回自定义媒体类型 `[application/x-any]`
+>
+> ```java
+> //设置浏览器发生format=x-any   对于[application/x-any]媒体类型
+> @Configuration(proxyBeanMethods = false)
+> public class MyConfig implements WebMvcConfigurer {
+>     @Override
+>     public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+>         //开启浏览器参数解析返回媒体类型
+>         //configurer.favorParameter(true);
+>         //设置参数名【默认为format】
+>         //configurer.parameterName("name");
+>         configurer.mediaType("x-any", MediaType.parseMediaType("application/x-any"));
+>         /*或者这样手动添加参数协商策略parameterStrategy
+>         ConcurrentHashMap<String, MediaType> mediaTypes = new ConcurrentHashMap<>();
+>         mediaTypes.put("xml",MediaType.APPLICATION_XML);
+>         mediaTypes.put("json",MediaType.APPLICATION_JSON);
+>         mediaTypes.put("x-any",MediaType.parseMediaType("x-any"));
+>         ParameterContentNegotiationStrategy parameterStrategy = new 		ParameterContentNegotiationStrategy(mediaTypes);
+>         configurer.strategies(Arrays.asList(parameterStrategy));
+>         */
+>     }
+> }
+> ```
+>
+> ***支持格式的条件：***
+>
+> ```java
+> //WebMvcConfigurationSupport.class
+> static {
+>    ClassLoader classLoader = WebMvcConfigurationSupport.class.getClassLoader();
+>     //ClassUtils.isPresent 指定类存在，且可被加载时（包括其依赖类）才为true
+>    romePresent = ClassUtils.isPresent("com.rometools.rome.feed.WireFeed", classLoader);
+>    jaxb2Present = ClassUtils.isPresent("javax.xml.bind.Binder", classLoader);
+>    jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader) &&
+>          ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
+>    jackson2XmlPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.xml.XmlMapper", classLoader);
+>    jackson2SmilePresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.smile.SmileFactory", classLoader);
+>    jackson2CborPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.cbor.CBORFactory", classLoader);
+>    gsonPresent = ClassUtils.isPresent("com.google.gson.Gson", classLoader);
+>    jsonbPresent = ClassUtils.isPresent("javax.json.bind.Jsonb", classLoader);
+>    kotlinSerializationJsonPresent = ClassUtils.isPresent("kotlinx.serialization.json.Json", classLoader);
+> }
+> ```
+>
+> ***支持的格式：***
+>
+> ```java
+> //WebMvcConfigurationSupport.class
+> //由此可见format字段支持：atom,rss.xml,json.smile,cbor
+> protected Map<String, MediaType> getDefaultMediaTypes() {
+>    Map<String, MediaType> map = new HashMap<>(4);
+>    if (romePresent) {
+>       map.put("atom", MediaType.APPLICATION_ATOM_XML);
+>       map.put("rss", MediaType.APPLICATION_RSS_XML);
+>    }
+>    if (!shouldIgnoreXml && (jaxb2Present || jackson2XmlPresent)) {
+>       map.put("xml", MediaType.APPLICATION_XML);
+>    }
+>    if (jackson2Present || gsonPresent || jsonbPresent) {
+>       map.put("json", MediaType.APPLICATION_JSON);
+>    }
+>    if (jackson2SmilePresent) {
+>       map.put("smile", MediaType.valueOf("application/x-jackson-smile"));
+>    }
+>    if (jackson2CborPresent) {
+>       map.put("cbor", MediaType.APPLICATION_CBOR);
+>    }
+>    return map;
+> }
+> ```
+>
+> ***注册到ioc容器中***
+>
+> ```java
+> //AllEncompassingFormHttpMessageConverter.class
+> static {
+> 		ClassLoader classLoader = AllEncompassingFormHttpMessageConverter.class.getClassLoader();
+> 		jaxb2Present = ClassUtils.isPresent("javax.xml.bind.Binder", classLoader);
+> 		jackson2Present = ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", classLoader) &&
+> 						ClassUtils.isPresent("com.fasterxml.jackson.core.JsonGenerator", classLoader);
+> 		jackson2XmlPresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.xml.XmlMapper", classLoader);
+> 		jackson2SmilePresent = ClassUtils.isPresent("com.fasterxml.jackson.dataformat.smile.SmileFactory", classLoader);
+> 		gsonPresent = ClassUtils.isPresent("com.google.gson.Gson", classLoader);
+> 		jsonbPresent = ClassUtils.isPresent("javax.json.bind.Jsonb", classLoader);
+> 		kotlinSerializationJsonPresent = ClassUtils.isPresent("kotlinx.serialization.json.Json", classLoader);
+> 	}
+> 
+> //根据条件注册相应的消息转换器messageConverter
+> 	public AllEncompassingFormHttpMessageConverter() {
+> 		if (!shouldIgnoreXml) {
+> 			try {
+> 				addPartConverter(new SourceHttpMessageConverter<>());
+> 			}
+> 			catch (Error err) {
+> 				// Ignore when no TransformerFactory implementation is available
+> 			}
+> 
+> 			if (jaxb2Present && !jackson2XmlPresent) {
+> 				addPartConverter(new Jaxb2RootElementHttpMessageConverter());
+> 			}
+> 		}
+> 
+> 		if (jackson2Present) {
+> 			addPartConverter(new MappingJackson2HttpMessageConverter());
+> 		}
+> 		else if (gsonPresent) {
+> 			addPartConverter(new GsonHttpMessageConverter());
+> 		}
+> 		else if (jsonbPresent) {
+> 			addPartConverter(new JsonbHttpMessageConverter());
+> 		}
+> 		else if (kotlinSerializationJsonPresent) {
+> 			addPartConverter(new KotlinSerializationJsonHttpMessageConverter());
+> 		}
+> //存在目标类，且spring.properties配置文件不是spring.xml.ignore=true （不写配置文件，默认为false）
+> 		if (jackson2XmlPresent && !shouldIgnoreXml) {
+> 			addPartConverter(new MappingJackson2XmlHttpMessageConverter());
+> 		}
+> 
+> 		if (jackson2SmilePresent) {
+> 			addPartConverter(new MappingJackson2SmileHttpMessageConverter());
+> 		}
+> 	}
+> 
+> ```
 
 + ***原理***
 
@@ -3099,7 +3230,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 + 
 
-***2.4、内容协商原理（根据客户端接收能力不同，返回相应的格式）***
+##### ***2.4、内容协商原理（根据客户端接收能力不同，返回相应的格式）***
 
 前提：控制器方法必须要被`@ResponseBody`注解标注才能被`RequestResponseBodyMethodProcessor.class`处理，从而调用内容协商功能
 
@@ -3170,9 +3301,202 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 
 + 找到了合适的消息转换器，就进行后续操作写入到response，并响应出去
 
+##### ==***2.5、自定义MessageConverter(PostMan)***==
 
+***实现多协议数据兼容。（需要什么返回什么，如xml,json,html,pdf,excel,word）***
+
+> *步骤：*
+>
+> + `@ResponseBody`响应数据出去，调用`RequestResponseBodyMethodProcessor.class`处理
+> + `RequestResponseBodyMethodProcessor.class`处理方法返回值，通过消息转换器`messageConverters`处理
+> + 所有的消息转换器`MessageConverter`合起来，可以支持各种媒体类型MediaType的操作（读、写）
+> + 内容协商找到最终的`messageConverter`
+
+***需求：***
+
+> + 如果是浏览器发生请求，则返回xml格式  [application/xml] 
+>
+> + 如果是ajax发生请求，则返回接送格式  [application/json]
+>
+> + 如果是app发生请求，则返回自定义格式  [application/x-any]
+>
+>   > 返回数据格式：属性值1;属性值2;
+
+***解决方法：***
+
+> 1、每个功能对应不同的请求路径，被不同的方法处理（不推荐）
+>
+> 2、*通过内容协商器和自定义消息转换器完成（推荐）*
+
+***步骤：***
+
+> + 自定义消息转换器messageConverter，用来处理制定媒体类型MediaType
+>
+>   ```java
+>   /**
+>    * FileName:MyMessageConverter.class
+>    * Author:ly
+>    * Date:2022/8/17
+>    * Description:自定义messageConvert，只用于处理Person类型，目前只关心写逻辑
+>    *             最终返回格式为：属性值1;属性值2;
+>    */
+>   public class MyMessageConverter implements HttpMessageConverter<Person> {
+>       private static Logger logger = LoggerFactory.getLogger(MyMessageConverter.class);
+>   
+>       @Override
+>       public boolean canRead(Class<?> clazz, MediaType mediaType) {
+>           //暂时只关心写逻辑【发送给客户端】，不关心读逻辑【服务器获取客户端发送的】
+>           return false;
+>       }
+>   
+>       @Override
+>       public boolean canWrite(Class<?> clazz, MediaType mediaType) {
+>           return clazz.isAssignableFrom(Person.class);
+>       }
+>   
+>       /**
+>        * 最重要，因为服务器要统计所有messageConverter都能写出哪些媒体类型mediaType
+>        * @return 自定义消息类型 [application/x-any]
+>        */
+>       @Override
+>       public List<MediaType> getSupportedMediaTypes() {
+>           //借助工具方法，由字符串，解析出自定义媒体类型
+>           return MediaType.parseMediaTypes("application/x-any");
+>       }
+>   
+>       @Override
+>       public List<MediaType> getSupportedMediaTypes(Class<?> clazz) {
+>           return HttpMessageConverter.super.getSupportedMediaTypes(clazz);
+>       }
+>   
+>       @Override
+>       public Person read(Class<? extends Person> clazz, HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
+>           //暂时只关心写逻辑【发送给客户端】，不关心读逻辑【服务器获取客户端发送的】
+>           return null;
+>       }
+>   
+>       @Override
+>       public void write(Person person, MediaType contentType, HttpOutputMessage outputMessage) throws IOException, HttpMessageNotWritableException {
+>           //自定义协议数据的写出【返回给客户端】
+>           String resq = String.format("%s;%d;%s",person.getUserName(),person.getAge(),person.getBrith());
+>           logger.info(resq);
+>   
+>           OutputStream outputStream = outputMessage.getBody();
+>           outputStream.write(resq.getBytes());
+>   
+>       }
+>   }
+>   ```
+>
+> + 将自己写的messageConverter，加入到ioc容器中（配置类中加入）
+>
+>   ```java
+>   /**
+>    * FileName:MyConfig.class
+>    * Author:ly
+>    * Date:2022/8/2
+>    * Description:
+>    */
+>   @Configuration(proxyBeanMethods = false)
+>   public class MyConfig implements WebMvcConfigurer {
+>       @Override
+>       public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+>           //配置就把默认的那些messageConverter都覆盖掉了，所以我们不推荐使用
+>       }
+>   
+>       @Override
+>       //在原有的messageConverter基础上扩展，推荐
+>       public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+>           converters.add(new MyMessageConverter());
+>   
+>       }
+>   }
+>   ```
+>
+> + 发送请求带对应的媒体类型MediaType就会被我们自己写的messageConverter解析【内容协商】
+>
+>   ![image-20220817144724759](img\image-20220817144724759.png)
+
+##### ==***2.6、自定义MessageConverter(浏览器请求参数方式format=xxxx)***==
+
+​	针对于2.5中问题的提升，如果是浏览器如何实现？
+
+***步骤（比2.5多一步）：***
+
+> + 自定义消息转换器messageConverter，用来处理制定媒体类型MediaType
+>
+> + 将自己写的messageConverter，加入到ioc容器中（配置类中加入）
+>
+> + ==***配置类中加入浏览器需要携带的参数媒体类型MediaType**==
+>
+>   ```java
+>   //设置浏览器发生format=x-any   对于[application/x-any]媒体类型
+>   @Configuration(proxyBeanMethods = false)
+>   public class MyConfig implements WebMvcConfigurer {
+>       @Override
+>       public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+>           //开启浏览器参数解析返回媒体类型
+>           //configurer.favorParameter(true);
+>           //设置参数名【默认为format】
+>           //configurer.parameterName("name");
+>           //[这样是扩展，所以基于请求头的不会失效]
+>           configurer.mediaType("x-any", MediaType.parseMediaType("application/x-any"));
+>           
+>           /*或者这样手动添加参数协商策略parameterStrategy [这样是覆盖，所以基于请求头的就会失效]
+>           ConcurrentHashMap<String, MediaType> mediaTypes = new ConcurrentHashMap<>();
+>           mediaTypes.put("xml",MediaType.APPLICATION_XML);
+>           mediaTypes.put("json",MediaType.APPLICATION_JSON);
+>           mediaTypes.put("x-any",MediaType.parseMediaType("x-any"));
+>           ParameterContentNegotiationStrategy parameterStrategy = new 		ParameterContentNegotiationStrategy(mediaTypes);
+>           configurer.strategies(Arrays.asList(parameterStrategy));
+>           */
+>       }
+>   }
+>   ```
+>
+>   > ***原理：***请求参数`format=xxx`解析策略`ParameterContentNegotiationStrategy.class`中，有个map集合用来报错支持媒体类型MediaType格式（默认只支持json），我们在配置类中手动加上自定义的媒体类型`application/x-any`，当我们浏览器发送这条请求时就会被接受处理，然后后面在进行最合适的返回类型匹配上用到（我们自己写的messageConverter专门用于处理application/x-any的消息处理器就会工作了）
+>   >
+>   > ![image-20220817154512834](img\image-20220817154512834.png)
+>
+> + 发送请求带对应的媒体类型MediaType就会被我们自己写的messageConverter解析【内容协商】
+>
+>   ![image-20220817152648976](img\image-20220817152648976.png)
 
 ### ***5、视图解析与模板引擎***
+
+***SpringBoot默认不支持jsp，参考：`0、SpringBoot下jsp和html混用并打包为jar包`***
+
+#### 5.1、模板引擎-Thymeleaf
+
+##### 	1、Thymeleaf简介
+
+​	hymeleaf is a modern server-side Java template engine for both web and standalone environments, capable of processing HTML, XML, JavaScript, CSS and even plain text.
+
+> 注：Thymeleaf性能不好，不适合高并发的网站
+
+##### 	2、基本语法
+
+​	***a)表达式：***
+
+| 表达式名字 | 语法   | 用途                               |
+| ---------- | ------ | ---------------------------------- |
+| 变量取值   | ${...} | 获取请求域、session域、对象等值    |
+| 选择变量   | *{...} | 获取上下文对象值                   |
+| 消息       | #{...} | 获取国际化等值                     |
+| 链接       | @{...} | 生成链接                           |
+| 片段表达式 | ~{...} | jsp:include 作用，引入公共页面片段 |
+
+​	***b)字面量***
+
+
+
+### 
+
+#### 5.2、原理
+
+
+
+
 
 
 
