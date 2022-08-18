@@ -15,4 +15,7 @@ spring:
       suffix: .jsp
     contentnegotiation:
       favor-parameter: true
+server:
+  servlet:
+    context-path: / # 设置当前项目的应用名即  http://ip:port/应用名
 #      static-locations: classpath:/templates/

@@ -1,0 +1,3 @@
+#server:
+#  servlet:
+#    context-path: /manage # 设置当前项目名

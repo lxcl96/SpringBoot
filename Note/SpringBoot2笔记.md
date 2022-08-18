@@ -3476,23 +3476,150 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 
 ##### 	2、基本语法
 
-​	***a)表达式：***
+​	***a）表达式：***
 
-| 表达式名字 | 语法   | 用途                               |
-| ---------- | ------ | ---------------------------------- |
-| 变量取值   | ${...} | 获取请求域、session域、对象等值    |
-| 选择变量   | *{...} | 获取上下文对象值                   |
-| 消息       | #{...} | 获取国际化等值                     |
-| 链接       | @{...} | 生成链接                           |
-| 片段表达式 | ~{...} | jsp:include 作用，引入公共页面片段 |
+| 表达式名字 | 语法   | 用途                                            |
+| ---------- | ------ | ----------------------------------------------- |
+| 变量取值   | ${...} | 顺序获取当前页面域、请求域、session域、对象等值 |
+| 选择变量   | *{...} | 获取上下文对象值                                |
+| 消息       | #{...} | 获取国际化等值                                  |
+| 链接       | @{...} | 生成链接                                        |
+| 片段表达式 | ~{...} | jsp:include 作用，引入公共页面片段              |
 
-​	***b)字面量***
+​	***b）字面量***
+
+> 文本值: **'one text'** **,** **'Another one!'** **,…**
+>
+> 数字: **0** **,** **34** **,** **3.0** **,** **12.3** **,…**
+>
+> 布尔值: **true** **,** **false**
+>
+> 空值: **null**
+>
+> 变量： one，two，.... 变量不能有空格
+
+​	***c）文本操作***
+
+> 字符串拼接: **+**
+>
+> 变量替换: **|The name is ${name}|** 
+
+​	***d）数学运算***
+
+> 运算符: + , - , * , / , %
+
+​	***e）布尔运算***
+
+> 运算符:  **and** **,** **or**
+>
+> 一元运算: **!** **,** **not**
+
+​	***f）比较运算***
+
+> 比较: **>** **,** **<** **,** **>=** **,** **<=** **(** **gt** **,** **lt** **,** **ge** **,** **le** **)**
+>
+> 等式: **==** **,** **!=** **(** **eq** **,** **ne** **)** 
+
+​	***g）条件运算***
+
+> If-then: **(if) ? (then)**
+>
+> If-then-else: **(if) ? (then) : (else)**
+>
+> Default: (value) **?: (defaultvalue)** 
+
+​	***h）特殊操作***
+
+> 无特殊操作
 
 
 
-### 
 
-#### 5.2、原理
+
+##### 3、设置属性值-th:attr
+
+设置单个值
+
+```html
+<form action="subscribe.html" th:attr="action=@{/subscribe}">
+  <fieldset>
+    <input type="text" name="email" />
+    <input type="submit" value="Subscribe!" th:attr="value=#{subscribe.submit}"/>
+  </fieldset>
+</form>
+```
+
+设置多个值
+
+```html
+<img src="../../images/gtvglogo.png"  th:attr="src=@{/images/gtvglogo.png},title=#{logo},alt=#{logo}" />
+```
+
+上面两个的简化写法：
+
+```html
+<input type="submit" value="Subscribe!" th:value="#{subscribe.submit}"/>
+<form action="subscribe.html" th:action="@{/subscribe}">
+```
+
+所有h5兼容的标签写法
+
+https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#setting-value-to-specific-attributes
+
+##### 4、迭代
+
+
+
+##### 5、条件运算
+
+
+
+##### 6、属性优先级
+
+
+
+#### 5.2、thymeleaf的使用
+
++ 引入场景启动器starter依赖
+
+  ```xml
+  <!-- thymeleaf模板引擎starter-->
+  <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+  </dependency>
+  ```
+
++ SpringBoot自动配置好了thymeleaf
+
+  > 就是`spring-boot-autoconfigure-2.7.2.jar/thymeleaf/ThymeleafAutoConfiguration.class`自动配置的
+  >
+  > + 自动向容器中注册好了：ThymeleafViewResolver视图解析器
+  > + 自动向容器中注册好了：SpringTemplateEngine 模板引擎
+  >
+  > 所以我们直接开发使用即可
+
++ 开发使用即可
+
+  > ```html
+  > <!DOCTYPE html>
+  > <!-- 必须要先声明m-->
+  > <html lang="en" xmlns:th="http://www.thymeleaf.org">
+  > <head>
+  >     <meta charset="UTF-8">
+  >     <title>success</title>
+  > </head>
+  > <body>
+  >     <h1 th:text="text + ${now}">success!</h1>
+  > </body>
+  > </html>
+  > ```
+
++ 
+
+
+
+#### 5.3、原理
 
 
 
