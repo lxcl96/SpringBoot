@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->             
+>               
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                 
+>                   
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->             
+>               
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	          
+>   	            
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                         
+>                             
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                
+>                                    
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                     
+>                                         
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3532,10 +3532,6 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 
 > 无特殊操作
 
-
-
-
-
 ##### 3、设置属性值-th:attr
 
 设置单个值
@@ -3568,15 +3564,42 @@ https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#setting-value-to
 
 ##### 4、迭代
 
-
+```html
+<table>
+  <tr>
+    <th>NAME</th>
+    <th>PRICE</th>
+    <th>IN STOCK</th>
+  </tr>
+    <!--prod对象，iterStat状态(id计数) -->
+  <tr th:each="prod,iterStat : ${prods}" th:class="${iterStat.odd}? 'odd'">
+      <td th:text="${iterStat.count}">id</td>
+    <td th:text="${prod.name}">Onions</td>
+    <td th:text="${prod.price}">2.41</td>
+    <td th:text="${prod.inStock}? #{true} : #{false}">yes</td>
+  </tr>
+</table>
+```
 
 ##### 5、条件运算
 
+```html
+<a href="comments.html"
+th:href="@{/product/comments(prodId=${prod.id})}"
+th:if="${not #lists.isEmpty(prod.comments)}">view</a>
+```
 
+```html
+<div th:switch="${user.role}">
+  <p th:case="'admin'">User is an administrator</p>
+  <p th:case="#{roles.manager}">User is a manager</p>
+  <p th:case="*">User is some other thing</p>
+</div>
+```
 
 ##### 6、属性优先级
 
-
+![image-20220819133220955](img\image-20220819133220955.png)
 
 #### 5.2、thymeleaf的使用
 
@@ -3603,7 +3626,7 @@ https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#setting-value-to
 
   > ```html
   > <!DOCTYPE html>
-  > <!-- 必须要先声明m-->
+  > <!-- 必须要先声明命名空间-->
   > <html lang="en" xmlns:th="http://www.thymeleaf.org">
   > <head>
   >     <meta charset="UTF-8">
@@ -3614,10 +3637,6 @@ https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#setting-value-to
   > </body>
   > </html>
   > ```
-
-+ 
-
-
 
 #### 5.3、原理
 
