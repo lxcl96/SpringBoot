@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->               
+>                 
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                   
+>                     
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->               
+>                 
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	            
+>   	              
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                             
+>                                 
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                    
+>                                        
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                         
+>                                             
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3466,6 +3466,8 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 
 ***SpringBoot默认不支持jsp，参考：`0、SpringBoot下jsp和html混用并打包为jar包`***
 
+![image-20220822151743189](img\image-20220822151743189.png)
+
 #### 5.1、模板引擎-Thymeleaf
 
 ##### 	1、Thymeleaf简介
@@ -3638,9 +3640,216 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
   > </html>
   > ```
 
-#### 5.3、原理
+#### 5.3、thymeleaf构建后台管理系统
 
+> ***1、项目创建***
+>
+> thymeleaf、web-starter、devtools、lombok
+>
+> ***2、静态资源处理***
+>
+> 自动配置好，我们只需要把所有静态资源放到 static 文件夹下
+>
+> ***3、路径构建***
+>
+> th:action="@{/login}"
+>
+> ***4、模板抽取***
+>
+> th:insert/replace/include
+>
+> ***5、页面跳转***
+>
+> ```java
+>  @PostMapping("/login")
+>  public String main(User user, HttpSession session, Model model){..}
+> ```
+>
+> ***6、数据渲染***
+>
+> ```html
+>     <table class="display table table-bordered" id="hidden-table-info">
+>     <thead>
+>     <tr>
+>         <th>#</th>
+>         <th>用户名</th>
+>         <th>密码</th>
+>     </tr>
+>     </thead>
+>     <tbody>
+>     <tr class="gradeX" th:each="user,stats:${users}">
+>         <td th:text="${stats.count}">Trident</td>
+>         <td th:text="${user.userName}">Internet</td>
+>         <td >[[${user.password}]]</td>
+>     </tr>
+>     </tbody>
+>     </table>
+> ```
 
+#### 5.3、原理（以登陆为例）
+
+> 1. 前端发送登录请求，根据处理器映射关系，调用对应的控制器方法，获取返回值`"redirect:/index.html"`(string类型)
+>
+> 2. 对返回值进行处理
+>
+>    + 遍历`returnValueHandlers`，找到可以处理该返回值的处理器 `ViewNameMethodReturnValueHandler.class`
+>
+>      ```java
+>      @Override
+>      	public boolean supportsReturnType(MethodParameter returnType) {
+>      		Class<?> paramType = returnType.getParameterType();
+>              //此返回值处理器专门处理返回类型为void和字符串序列的
+>      		return (void.class == paramType || CharSequence.class.isAssignableFrom(paramType));
+>      	}
+>      ```
+>
+>    + 调用`handleReturnValue()`方法，处理返回值
+>
+>      ```java
+>      //主要步骤
+>      if (returnValue instanceof CharSequence) {
+>          //获取视图名：redirect:/index.html
+>            String viewName = returnValue.toString();
+>            mavContainer.setViewName(viewName);
+>          //如果是重定向（redirect开头），设置标记
+>            if (isRedirectViewName(viewName)) {
+>               mavContainer.setRedirectModelScenario(true);
+>            }
+>         }
+>      ```
+>
+> 3. 返回处理后的`ModelAndView（由mavContainer而来）`视图
+>
+> 4. dispatcherServlet继续处理派发结果
+>
+>    ```java
+>    //处理派发结果
+>    processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
+>    
+>    //渲染数据
+>    render(mv, request, response);
+>    ```
+>
+> 5. 解析视图名，遍历所有视图解析器看看哪个能够解析（确定是redirect视图，还是forward视图，还是thymeleaf视图）
+>
+>    ```java
+>    //1
+>    List<View> candidateViews = getCandidateViews(viewName, locale, requestedMediaTypes);
+>    //2 每一个视图解析器都尝试去解析
+>    List<View> candidateViews = new ArrayList<>();
+>    if (this.viewResolvers != null) {
+>        Assert.state(this.contentNegotiationManager != null, "No ContentNegotiationManager set");
+>        for (ViewResolver viewResolver : this.viewResolvers) {
+>            View view = viewResolver.resolveViewName(viewName, locale);
+>            if (view != null) {
+>                //如果可以解析，将解析后的视图加入候选名单中
+>                candidateViews.add(view);
+>            }
+>            
+>            ...
+>        }
+>    }
+>    ```
+>
+>    > ![image-20220822154243350](\img\image-20220822154243350.png)
+>    >
+>    > 注：第一个内容协商视图解析器`ContentNegotiatingViewResolver`包含其余四个解析器，实际解析还是从下面4个解析器顺序遍历尝试解析返回值
+>    >
+>    > 
+>
+>    + `BeanNameViewResolver`视图解析器，返回null。（因为ioc容器中没有名字为`redirect:/index.html`的组件）
+>
+>    + `ThymeleafViewResolver`视图解析器，如果启用缓存则直接创建视图（不论返回值为什么）
+>
+>      ```java
+>      //ThymeleafViewResolver#createView
+>      protected View createView(final String viewName, final Locale locale) throws Exception {
+>          // 返回值以 redirect:开头的
+>          if (viewName.startsWith(REDIRECT_URL_PREFIX)) {
+>              final String redirectUrl = viewName.substring(REDIRECT_URL_PREFIX.length(), viewName.length());
+>              //创建重定向视图
+>              final RedirectView view = new RedirectView(redirectUrl, isRedirectContextRelative(), isRedirectHttp10Compatible());
+>              return (View) getApplicationContext().getAutowireCapableBeanFactory().initializeBean(view, REDIRECT_URL_PREFIX);
+>          }
+>         // 返回值以 forward:开头的
+>          if (viewName.startsWith(FORWARD_URL_PREFIX)) {
+>              final String forwardUrl = viewName.substring(FORWARD_URL_PREFIX.length(), viewName.length());
+>              //转发视图
+>              return new InternalResourceView(forwardUrl);
+>          }
+>      
+>      	//其它的创建 thymeleaf视图
+>          return loadView(viewName, locale);
+>      }
+>      ```
+>
+>    + `ViewResolverComposite`视图解析器，无法解析
+>
+>    + `InternalResourceViewResolver`视图解析器，和thymeleaf一样解析所有的
+>
+>      > 先从InternalResourceViewResolver的缓存中取，取不到就新建。所以同一个路径引入thymeleaf后，会创建两份视图（一份thymeleaf，一份InternalResource）
+>
+> 6. 根据上一步的候选名单，选出最适合的试图（thymeleaf创建的重定向视图，因为顺序在前）
+>
+>    ```java
+>    View bestView = getBestView(candidateViews, requestedMediaTypes, attrs);
+>    
+>    
+>    private View getBestView(List<View> candidateViews, List<MediaType> requestedMediaTypes, RequestAttributes attrs) {
+>        for (View candidateView : candidateViews) {
+>            //重定向视图redirectView就是SmartView
+>            if (candidateView instanceof SmartView) {
+>                //所以先返回thymeleaf的（顺序在前）
+>                SmartView smartView = (SmartView) candidateView;
+>                if (smartView.isRedirectView()) {
+>                    return candidateView;
+>                }
+>            }
+>        }
+>        
+>        //处理其余普通视图和 转发视图
+>        //原理就是前面处理返回值的   内容协商
+>        for (MediaType mediaType : requestedMediaTypes) {
+>            for (View candidateView : candidateViews) {
+>                //candidateView.getContentType()即MediaType媒体类型
+>                if (StringUtils.hasText(candidateView.getContentType())) {
+>                    MediaType candidateContentType = MediaType.parseMediaType(candidateView.getContentType());
+>                    if (mediaType.isCompatibleWith(candidateContentType)) {
+>                        mediaType = mediaType.removeQualityValue();
+>                        if (logger.isDebugEnabled()) {
+>                            logger.debug("Selected '" + mediaType + "' given " + requestedMediaTypes);
+>                        }
+>                        attrs.setAttribute(View.SELECTED_CONTENT_TYPE, mediaType, RequestAttributes.SCOPE_REQUEST);
+>                        return candidateView;
+>                    }
+>                }
+>            }
+>        }
+>        return null;
+>    }
+>    ```
+>
+> 7. 根据返回的视图，进行视图渲染
+>
+>    ```java
+>    //DispatcherServlet
+>    view.render(mv.getModelInternal(), request, response);
+>    //AbstractView
+>    renderMergedOutputModel(mergedModel, getRequestToExpose(request), response);
+>    
+>    //RedirectView
+>    //1、创建最终的访问路径 /index.html
+>    String targetUrl = createTargetUrl(model, request);
+>    //2、进行重定向，底层就是原始的response.sendRedirect(location);
+>    sendRedirect(request, response, targetUrl, this.http10Compatible);
+>     //
+>    ```
+>
+>    **视图解析：**
+>
+>    - - ***返回值以 forward: 开始（转发视图）： new InternalResourceView(forwardUrl); -->  转发request.getRequestDispatcher(path).forward(request, response);***
+>      - **返回值以** **redirect: 开始（重定向视图）：** **new RedirectView() --》 render就是重定向** 
+>      - **返回值是普通字符串（thymeleaf视图）： new ThymeleafView（）--->** 
 
 
 
