@@ -41,10 +41,11 @@ public class IndexController {
 
     @GetMapping("/index.html")
     public String index(HttpSession session,Model model) {
-        if (session.getAttribute("loginUser") == null) {
-            model.addAttribute("msg","请先登录！");
-            return "login";
-        }
+        //有了拦截器，此处可以省略了
+//        if (session.getAttribute("loginUser") == null) {
+//            model.addAttribute("msg","请先登录！");
+//            return "login";
+//        }
         return "index";
     }
 

@@ -1,3 +1,8 @@
 #server:
 #  servlet:
 #    context-path: /manage # 设置当前项目名
+
+#spring:
+#  mvc:
+#    # 默认是 /**
+#    static-path-pattern: /staticResource/**

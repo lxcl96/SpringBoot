@@ -3851,17 +3851,189 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >      - **返回值以** **redirect: 开始（重定向视图）：** **new RedirectView() --》 render就是重定向** 
 >      - **返回值是普通字符串（thymeleaf视图）： new ThymeleafView（）--->** 
 
-
-
-
-
-
-
 ### ***6、拦截器***
 
+实现接口`HandlerInterceptor`的组件，三个方法的执行顺序如下：
+
+![image-20220823100935520](\img\image-20220823100935520.png)
+
+#### ***6.1、使用步骤：***
+
+> + 创建一个拦截器，实现`HandlerInterceptor`接口
+>
+>   ```java
+>   public class UserInterceptor implements HandlerInterceptor {
+>       private final Logger log = LoggerFactory.getLogger(UserInterceptor.class);
+>       /**
+>        * 控制器方法执行前执行
+>        * @param request request
+>        * @param response response
+>        * @param handler handler控制器方法，即controller方法
+>        * @return true，表示放行；false，表示拦截
+>        * @throws Exception 异常
+>        */
+>       @Override
+>       public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+>           log.info("handler" + handler);
+>           HttpSession session = request.getSession();
+>           if (session.getAttribute("loginUser") == null) {
+>               session.setAttribute("msg","请先登录");
+>               //重定向比较好
+>               response.sendRedirect("/");
+>               return false;
+>           }
+>           return true;
+>       }
+>   
+>       //控制器方法执行后执行
+>       @Override
+>       public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+>           HandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
+>       }
+>   
+>       //视图渲染render后执行
+>       @Override
+>       public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+>           HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+>       }
+>   
+>   }
+>   ```
+>
+> + 在配置类中加入定制的拦截器，并配置拦截和放行路径
+>
+>   ```java
+>   @Configuration(proxyBeanMethods = false)
+>   public class MyConfig implements WebMvcConfigurer {
+>       @Override
+>       public void addInterceptors(InterceptorRegistry registry) {
+>           registry.addInterceptor(new UserInterceptor())
+>                   .addPathPatterns("/**")//包括静态资源都会被拦截
+>                   .excludePathPatterns("/","/login");
+>       }
+>   }
+>   ```
+>
+> + <font color='red'>拦截了所有请求，所以静态资源也被拦截，所以必须放行静态资源</font>
+>
+>   > ***两种方法：***
+>   >
+>   > 1. 拦截器增加排除路径
+>   >
+>   >    ```java
+>   >    registry.addInterceptor(new UserInterceptor())
+>   >        .addPathPatterns("/**")
+>   >        .excludePathPatterns("/","/login")
+>   >        .excludePathPatterns("/css/**","/js/**","/fonts/**","/images/**");
+>   >    ```
+>   >
+>   >    
+>   >
+>   > 2. 配置文件中给当前项目增加静态资源访问路径
+>   >
+>   >    ```yaml
+>   >    spring:
+>   >      mvc:
+>   >        # 默认是 /**
+>   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
+>   >        
+>   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
+>   >    ```
 
 
 
+#### ***6.2、拦截器原理***
+
+ 以`http://localhost:8080/basic_table`请求为例：
+
+![image-20220823162612996](img\image-20220823162612996.png)
+
++ DIspatcherServlet接收请求，根据请求路径查找到对应的控制器方法handler
+
+  ```java
+  mappedHandler = getHandler(processedRequest);
+  //不仅找到了对应的controller方法，而且找到了所有的拦截器 即HandlerExecutionChain
+  ```
+
+  ![image-20220823154817139](img\image-20220823154817139.png)
+
++ DispatcherServlet在执行handler方法前，循环**正序**调用所有拦截器的**pre**方法，如果有一个拦截器返回false，则直接返回（后面的都不执行了）
+
+  ```java
+  if (!mappedHandler.applyPreHandle(processedRequest, response)) {
+     return;
+  }
+  ```
+
++ 调用handler方法，获取到返回的 **ModelAndView**
+
+  ```java
+  mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+  ```
+
++ DispatcherServlet在执行handler方法后，循环**逆序**调用所有拦截器的**post**方法
+
+  ```java
+  mappedHandler.applyPostHandle(processedRequest, response, mv);
+  ```
+
++ 在渲染视图后，循环**逆序**调用所有拦截器的triggerAfterCompletion方法
+
+  ```java
+  processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
+  // -->  方法内部
+  
+  //渲染视图
+  render(mv, request, response);
+  
+  //调用拦截器的triggerAfterCompletion方法
+  if (mappedHandler != null) {
+      // Exception (if any) is already handled..
+      mappedHandler.triggerAfterCompletion(request, response, null);
+  }
+  ```
+
++ **额外1**：如果在执行有拦截器的**pre**方法时，有一个拦截器返回false，就直接调用**逆序**调用所有拦截器的`triggerAfterCompletion()`方法，然后直接返回
+
+  ```java
+  boolean applyPreHandle(HttpServletRequest request, HttpServletResponse response) throws Exception {
+     for (int i = 0; i < this.interceptorList.size(); i++) {
+        HandlerInterceptor interceptor = this.interceptorList.get(i);
+         //有一个返回null，逆序调用triggerAfterCompletion方法
+        if (!interceptor.preHandle(request, response, this.handler)) {
+           triggerAfterCompletion(request, response, null);
+           return false;
+        }
+        this.interceptorIndex = i;
+     }
+     return true;
+  }
+  ```
+
++ **额外2**：如果执行doDispatch内部上面的核心方法出现异常，也会循环**逆序**调用所有拦截器的`triggerAfterCompletion`方法
+
+  ```java
+  //DoDispatch
+  
+  catch (Exception ex) {
+     triggerAfterCompletion(processedRequest, response, mappedHandler, ex);
+  }
+  catch (Throwable err) {
+     triggerAfterCompletion(processedRequest, response, mappedHandler,
+           new NestedServletException("Handler processing failed", err));
+  }
+  ```
+
+> ***注意：***由于模板html的问题，同一接口浏览器会发送两次请求（请求的Accept不一样），被两个线程处理，对原理解析产生了干扰
+>
+> ```sh
+> # 先执行的
+> Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9 
+> # 后执行的
+> Accept:image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+> ```
+>
+> ![image-20220823160756956](img\image-20220823160756956.png)
 
 ### ***7、跨域***
 

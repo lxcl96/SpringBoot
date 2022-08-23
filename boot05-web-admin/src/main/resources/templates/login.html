@@ -27,7 +27,7 @@
         <div class="form-signin-heading text-center">
             <h1 class="sign-title">Sign In</h1>
             <img th:src="@{/images/login-logo.png}" alt=""/>
-            <h5 style="color: red" th:text="${msg}"></h5>
+            <h5 style="color: red" th:text="${msg==null?session.msg:msg}"></h5>
         </div>
 
         <div class="login-wrap">
