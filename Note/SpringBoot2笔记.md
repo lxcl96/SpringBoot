@@ -4035,7 +4035,148 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >
 > ![image-20220823160756956](img\image-20220823160756956.png)
 
-### ***7、跨域***
+### ***7、文件上传***
+
+#### 1、前端代码
+
+```html
+ 
+<form role="form" method="post" th:action="@{/fileUpload}" enctype="multipart/form-data">
+     <div class="form-group">
+         <label for="exampleInputEmail1">邮箱</label>
+         <input type="email" name="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email">
+     </div>
+     <div class="form-group">
+         <label for="exampleInputPassword1">账户</label>
+         <input type="text" name="username" class="form-control" id="exampleInputPassword1" placeholder="Password">
+     </div>
+     <div class="form-group">
+         <label for="SingleExampleInputFile">头像</label>
+         <input type="file" name="image" id="SingleExampleInputFile">
+     </div>
+
+     <div class="form-group">
+         <label for="MultiExampleInputFile">文件</label>
+         <input type="file"name="files" id="MultiExampleInputFile" multiple>
+     </div>
+     <button type="submit" class="btn btn-primary">提交</button>
+</form>
+```
+
+> ***注意：***form标签必须加上 enctype属性，否则传递的只是文件名
+>
+> ![image-20220824094157753](img\image-20220824094157753.png)
+
+#### 2、控制器Controller方法
+
+```java
+@Controller
+public class FormController {
+    private final Logger log = LoggerFactory.getLogger(FormController.class);
+
+    /**
+     * 单文件上传和多文件上传，参数必须和前端传过来的一样
+     *  form标签必须加上enctype属性，enctype="multipart/form-data"，否则传递的只是文件名
+     * @param image 单文件  [参数注解不写也可以]
+     * @param files 多文件  [参数注解不写也可以]
+     * @param username str  [参数注解不写也可以]
+     * @param email str  [参数注解不写也可以]
+     * @return 原页面
+     */
+    @PostMapping("/fileUpload")
+    public String fileUpload(@RequestPart("image") MultipartFile image,
+                             @RequestPart("image")MultipartFile[] files,
+                             @RequestParam("username") String username,
+                             @RequestParam("email") String email) throws IOException {
+        log.info("前端传递参数 username：[ " + username + ", email:" + email  + " ]");
+        log.info("前端传递单文件：[ " + image.getOriginalFilename()  + " ]");
+
+        if (image.isEmpty() || files.length < 1) {
+            log.info("头像和文件必须同时上传！");
+            return "redirect:/form_layouts";
+        }
+
+        FileTool fileTool = new FileTool();
+        StringBuilder mulName = new StringBuilder();
+        for (MultipartFile file : files) {
+            mulName.append(file.getOriginalFilename() + "  ");
+        }
+        log.info("前端传递多文件：[ " + mulName.toString() + " ]");
+		//自己写的保存方法，当然也可以自己用 image.transferTo();方法
+        fileTool.fileSave(image.getOriginalFilename(),image.getBytes(),
+                "static/upload/" + username,true);
+        log.info("单文件 ["+ image.getOriginalFilename() + "] 保存成功！");
+
+        for (MultipartFile file : files) {
+            fileTool.fileSave(file.getOriginalFilename(),file.getBytes(),
+                    "static/upload/" + username,true);
+        }
+        log.info("多文件 ["+ mulName.toString() + "] 保存成功！");
+
+
+
+        return "redirect:/form_layouts";
+    }
+
+}
+```
+
+```java
+//工具类
+public class FileTool {
+    private static final Logger log = LoggerFactory.getLogger(FileTool.class);
+    /**
+     * 文件保存
+     * @param fileName 文件名
+     * @param bytes 文件字节内容
+     * @param savePath 类路径下，文件保存位置
+     */
+    public void fileSave(String fileName, byte[] bytes, String savePath, Boolean override) throws IOException {
+        //获取当前类路径
+        String fileStr = this.getClass().getResource("/").getPath() + File.separator + savePath +  File.separator + fileName;
+        File file = new File(fileStr);
+
+        //java目录和文件是分开创建的
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+        if (file.exists() && !override) {
+            log.info(fileStr + "已经存在，且不重写！");
+            return;
+        } else if (!file.exists()) {
+            //创建文件不会同时创建目录，所以必须要先创建目录
+            file.createNewFile();
+        }
+
+        FileOutputStream out = new FileOutputStream(file);
+        out.write(bytes);
+        out.flush();
+        out.close();
+
+    }
+}
+```
+
+> ***注意***：SpringBoot默认配置单个文件最大为1MB，单词请求request最大携带数据为10MB，所以如果文件太大会报错
+>
+> ```yaml
+> spring:
+>   servlet:
+>     multipart:
+>     # 可以在配置文件中自己改
+>       max-file-size: 10MB
+>       max-request-size: 100MB
+> ```
+
+#### ***3、原理***
+
+
+
+
+
+
+
+### ***8、跨域***
 
 
 

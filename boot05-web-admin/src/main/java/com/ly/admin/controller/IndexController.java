@@ -49,4 +49,11 @@ public class IndexController {
         return "index";
     }
 
+    @GetMapping({"/form_layouts"})
+    public String FormLayout(Model model) {
+        log.info("uri = dynamic_table");
+        model.addAttribute("nowUri","form_layouts");
+        return "form/form_layouts";
+    }
+
 }

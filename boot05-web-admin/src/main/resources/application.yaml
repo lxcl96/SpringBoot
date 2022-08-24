@@ -6,3 +6,8 @@
 #  mvc:
 #    # 默认是 /**
 #    static-path-pattern: /staticResource/**
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 100MB
