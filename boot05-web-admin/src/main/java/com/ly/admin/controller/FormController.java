@@ -2,17 +2,18 @@ package com.ly.admin.controller;
 
 
 import com.ly.admin.util.FileTool;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.IOException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
 
 
 /**
@@ -36,7 +37,7 @@ public class FormController {
      */
     @PostMapping("/fileUpload")
     public String fileUpload(@RequestPart("image") MultipartFile image,
-                             @RequestPart("image")MultipartFile[] files,
+                             @RequestPart("files")MultipartFile[] files,
                              @RequestParam("username") String username,
                              @RequestParam("email") String email) throws IOException {
         log.info("前端传递参数 username：[ " + username + ", email:" + email  + " ]");
@@ -65,8 +66,44 @@ public class FormController {
         log.info("多文件 ["+ mulName.toString() + "] 保存成功！");
 
 
-        return "redirect:/form_layouts";
+        return "redirect:/toFiles";
     }
 
+    @ResponseBody
+    @GetMapping("/dispaly")
+    public String fileShow(@RequestParam("filename")String filename) throws IOException {
+        String filePath = this.getClass().getResource("/").getFile() + "/static/upload/lxcl96/" + filename;
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return "<h1 color='red'>错误，文件"+filename+"不存在<h1>";
+        }
+        char[] buffer = new char[102400];
+        FileReader fileReader = new FileReader(file);
+        int i = fileReader.read(buffer);
+        log.info("读入字符数：" + i);
+        fileReader.close();
+        return String.valueOf(buffer);
+    }
+
+
+    @GetMapping("/download")
+    public ResponseEntity<byte[]> download(@RequestParam("filename")String filename, HttpServletResponse response) throws IOException {
+        String filePath = this.getClass().getResource("/").getFile() + "/static/upload/lxcl96/" + filename;
+        File file = new File(filePath);
+        if (!file.exists()) {
+            response.getWriter().write("<h1 color='red'>错误，文件"+filename+"不存在<h1>");
+            return null;
+        }
+        byte[] buffer = new byte[1024000];
+        FileInputStream fileInputStream = new FileInputStream(file);
+        int i = fileInputStream.read(buffer);
+        log.info("读入字节数：" + i);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Content-Disposition","attachment;filename=" + filename);
+        ResponseEntity<byte[]> responseEntity = new ResponseEntity<byte[]>(httpHeaders, HttpStatus.OK);
+
+        return responseEntity;
+
+    }
 
 }

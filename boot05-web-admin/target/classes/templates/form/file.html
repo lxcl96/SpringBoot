@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>文件下载</title>
+</head>
+<body>
+    <table border="1px"  cellspacing="0" style="border: 1px solid;">
+        <tr>
+            <th>序号</th>
+            <th>文件名</th>
+            <th>文件大小</th>
+            <th colspan="2">操作</th>
+        </tr>
+        <!--prod对象，iterStat状态(id计数) -->
+        <tr th:each="file,iterStat : ${serverFiles}">
+            <td th:text="${iterStat.count}">1</td>
+            <td th:text="${file.name}">example.ex</td>
+            <td th:text="${file.size} + 'KB'">1024kb</td>
+            <td>
+                <a th:href="@{/download?filename=} + ${file.name}">下载</a>
+            </td>
+            <td>
+                <a th:href="@{/dispaly?filename=} + ${file.name}">查看</a>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

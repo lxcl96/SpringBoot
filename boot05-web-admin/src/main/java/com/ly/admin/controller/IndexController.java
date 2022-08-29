@@ -1,5 +1,6 @@
 package com.ly.admin.controller;
 
+import com.ly.admin.bean.FileAttribute;
 import com.ly.admin.bean.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import javax.servlet.http.HttpSession;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * FileName:IndexController.class
@@ -54,6 +58,25 @@ public class IndexController {
         log.info("uri = dynamic_table");
         model.addAttribute("nowUri","form_layouts");
         return "form/form_layouts";
+    }
+
+
+    @GetMapping({"/toFiles"})
+    public String toFiles(Model model) {
+        log.info("读取本地文件属性，封装到集合");
+        String dir = this.getClass().getResource("/").getFile() + "/static/upload/lxcl96";
+        File dirFile = new File(dir);
+        if (!dirFile.exists()) {
+            return "form/file";
+        }
+        ArrayList<FileAttribute> list = new ArrayList<>();
+        File[] files = dirFile.listFiles();
+        for (File file : files) {
+           list.add(new FileAttribute(file.getName(),(file.length()/1024) + 1));
+        }
+        model.addAttribute("serverFiles",list);
+        log.info(list.toString());
+        return "form/file";
     }
 
 }
