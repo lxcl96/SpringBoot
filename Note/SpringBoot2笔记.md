@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                 
+>                     
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                     
+>                         
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                 
+>                     
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	              
+>   	                  
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                 
+>                                         
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                        
+>                                                
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                             
+>                                                     
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >        
+>   >              
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -4170,7 +4170,105 @@ public class FileTool {
 
 #### ***3、原理***
 
++ 能够解析`MultipartFile`类型是因为SpringBoot自动配置了一个组件：`MultipartResolver.class`文件解析器：
 
+  ```java
+  //MultipartAutoConfiguration.class
+  @Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+  @ConditionalOnMissingBean(MultipartResolver.class)
+  //名字必须为multipartResolver
+  public StandardServletMultipartResolver multipartResolver() {
+     StandardServletMultipartResolver multipartResolver = new StandardServletMultipartResolver();
+     multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
+     return multipartResolver;
+  }
+  ```
+
++ 在获取处理器（控制器方法）前，会检查当前请求是否为文件流
+
+  ```java
+  processedRequest = checkMultipart(request);
+  ```
+
+  > ***内部子流程：***
+  >
+  > + 判断当前ioc是否有`multipartResolver`，并且当前请求是否为文件流
+  >
+  >   ```java
+  >   //判断当前请求是否为文件流类型
+  >   public boolean isMultipart(HttpServletRequest request) {
+  >       //请求头的Content-Type是否是 multipart/ 开头
+  >      return StringUtils.startsWithIgnoreCase(request.getContentType(),
+  >            (this.strictServletCompliance ? MediaType.MULTIPART_FORM_DATA_VALUE : "multipart/"));
+  >   }
+  >   ```
+  >
+  > + 如果当前请求是文件流类型，则使用`multipartResolver`解析文件流，返回`MultipartHttpServletRequest`类型
+  >
+  >   ```java
+  >   return this.multipartResolver.resolveMultipart(request);
+  >   
+  >   //所谓解析请求，也就是把请求重新包装一下
+  >   @Override
+  >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
+  >       return new StandardMultipartHttpServletRequest(request, this.resolveLazily);
+  >   }
+  >   ```
+  >
+  >   解析后得到的`MultiValueMap<String, MultipartFile>`类型，里面是根据文件类型划分的map集合，普通的参数则放在multipartParameterNames中
+  >
+  >   ![image-20220830161628821](\img\image-20220830161628821.png)
+  >
+  >   ![image-20220830162043828](img\image-20220830162043828.png)
+  >
+  >   
+  >
+  >   <font color='red'>注意：请求被接受是已经被tomcat处理保存了，看类名</font>
+  >
+  >   ![image-20220830161404511](img\image-20220830161404511.png)
+
++ 如果是文件流请求，则请求标志设置为`true`
+
+  ```java
+  multipartRequestParsed = (processedRequest != request);
+  ```
+
++ 下面就是正常的过程
+
+  > 1. 找到请求处理器(控制器方法)
+  > 2. 找到处理器适配器
+  > 3. 调用前置处理器
+  > 4. 进入请求处理器的调用过程
+
++ 进入请求处理器的调用过程中最重要的：**根据参数解析器，获取参数**
+
+  > ```java
+  > Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
+  > ```
+  >
+  > ***解析步骤：***
+  >
+  > 1. 顺序遍历所有的参数，然后用所有的参数解析器，看看谁能够支持解析`multipartFile`类型===》找到`RequestPartMethodArgumentResolver.class`参数解析器
+  >
+  >    ```java
+  >    @Override
+  >    public boolean supportsParameter(MethodParameter parameter) {
+  >        //有@RequestPart注解，直接返回true
+  >       if (parameter.hasParameterAnnotation(RequestPart.class)) {
+  >          return true;
+  >       }
+  >       else {
+  >          if (parameter.hasParameterAnnotation(RequestParam.class)) {
+  >             return false;
+  >          }
+  >          return MultipartResolutionDelegate.isMultipartArgument(parameter.nestedIfOptional());
+  >       }
+  >    }
+  >    ```
+  >
+  > 2. 解析参数，返回 `StandardMultipartHttpServletRequest`类型
+  >
+  >    ![image-20220830170830590](img\image-20220830170830590.png)
 
 
 
