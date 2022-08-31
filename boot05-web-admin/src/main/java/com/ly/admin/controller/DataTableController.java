@@ -20,6 +20,7 @@ public class DataTableController {
 
     @GetMapping({"/basic_table"})
     public String basic_table(Model model) {
+        int i = 10 / 0;
         log.info("uri = basic_table");
         model.addAttribute("nowUri","basic_table");
         return "table/basic_table";

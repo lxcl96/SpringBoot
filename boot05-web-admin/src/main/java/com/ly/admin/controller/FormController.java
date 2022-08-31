@@ -100,7 +100,7 @@ public class FormController {
         log.info("读入字节数：" + i);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Content-Disposition","attachment;filename=" + filename);
-        ResponseEntity<byte[]> responseEntity = new ResponseEntity<byte[]>(httpHeaders, HttpStatus.OK);
+        ResponseEntity<byte[]> responseEntity = new ResponseEntity<>(buffer,httpHeaders, HttpStatus.OK);
 
         return responseEntity;
 
