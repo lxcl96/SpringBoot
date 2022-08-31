@@ -4710,7 +4710,10 @@ public String basic_table(Model model) {
    ```
 
    > ```java
-   > //StandardHostValve#status
+   > //StandardHostValve#status 继续调用status方法
+   > 
+   > //尝试从当前请求的上下文中获取到当前状态码uerrorPage
+   > Context context = request.getContext();
    > ErrorPage errorPage = context.findErrorPage(statusCode);
    > ```
 
