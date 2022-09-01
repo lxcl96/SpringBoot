@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                       
+>                             
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                           
+>                                 
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                       
+>                             
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                    
+>   	                          
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                             
+>                                                         
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                    
+>                                                                
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                         
+>                                                                     
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                 
+>   >                          
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -4207,7 +4207,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >     
+  >           
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -4326,9 +4326,16 @@ public ResponseEntity<byte[]> download(@RequestParam("filename")String filename,
 
 + <font color='red'>如果要完全替换默认行为，可以实现`ErrorController`并实现该类型的bean定义，或添加`ErrorAttributes`类型的组件，用现有机制替换内容</font>
 
-#### 2、定制错误处理逻辑
+***
 
+#### <font color='yellow'>***2、定制错误处理逻辑（重要）***</font>
 
++ *自定义错误页*
++ *借助`@ControllerAdvice`和`@ExceptionHandler`处理全局异常*
++ *`@ResponseStatus` + 自定义异常*
++ *Spring底层的异常，如：参数类型转换异常*
++ *自定义实现`HandlerExceptionResolver`处理异常*
++ *`ErrorViewResolver`实现自定义处理异常*
 
 
 
@@ -4488,20 +4495,6 @@ public ResponseEntity<byte[]> download(@RequestParam("filename")String filename,
 
 + 
 
-总结：当发生错误时（异常处理器接收调用），默认会发送`/error`请求，访问error页面。然后`BasicErrorController`接收到请求，根据客户端的不同调用不同的方法：
-
-+ 如果是浏览器，调用`errorHtml`方法，然后返回一个`ModelAndView`，视图名字就为`error`，最后再被视图渲染时，调用`render`方法，将默认Whitelable信息返回
-
-  ```java
-  return (modelAndView != null) ? modelAndView : new ModelAndView("error", model);
-  ```
-
-+ 如果是客户端如postman，调用`error`方法，通过新建一个ResponseEntity，返回一个json报文数据
-
-  ```java
-  return new ResponseEntity<>(body, status);
-  ```
-
 #### 4、异常调用流程
 
 以控制器方法算术异常为例子：
@@ -4523,7 +4516,7 @@ public String basic_table(Model model) {
    mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
    ```
 
-2. java底层抛出`ArithmeticException`，然会逐层抛出，一直到DispatcherServlet，然后记录下来异常
+2. java底层抛出`ArithmeticException`，然会逐层抛出，一直到DispatcherServlet，然后记录下来异常，并设置当前请求已经被处理完成状态
 
    ```java
    //DispatcherSerblet#DoDispatch
@@ -4539,7 +4532,7 @@ public String basic_table(Model model) {
    processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);//3
    ```
 
-3. 继续处理派发结果
+3. 继续处理派发结果，进行视图解析流程
 
    ```java
    //DispatcherSerblet#DoDispatch
@@ -4548,7 +4541,7 @@ public String basic_table(Model model) {
 
    > a.异常不为空，进入异常处理步骤
    >
-   > b.判断DispatcherServlet中处理器异常解析器handlerExceptionResolvers是否存在，存在！
+   > b.判断DispatcherServlet中处理器异常解析器handlerExceptionResolvers是否存在，存在！***此处就是存放自定义异常解析器的位置，最后一定会返回一个ModelAndView***
    >
    > ![image-20220831145843546](img\image-20220831145843546.png)
    >
@@ -4570,102 +4563,34 @@ public String basic_table(Model model) {
    >
    >   ![image-20220831150515645](\img\image-20220831150515645.png)
    >
-   >   > + `ExceptionHandlerExceptionResolver`和`ResponseStatusExceptionResolver`无法解析
+   >   > + `ExceptionHandlerExceptionResolver（用于处理@ExceptionHandler注解）`和`ResponseStatusExceptionResolver（用于处理@ResponseStatus注解）`无法解析
    >   >
-   >   > + `DefaultHandlerExceptionResolver`进行解析，判断异常状态码（结果也不支持返回null）
+   >   > + `DefaultHandlerExceptionResolver`进行解析，只支持如下异常信息（当前为算术异常，不支持返回null）
    >   >
-   >   >   ```java
-   >   >   @Override
-   >   >   @Nullable
-   >   >   protected ModelAndView doResolveException(
-   >   >       HttpServletRequest request, HttpServletResponse response, @Nullable Object handler, Exception ex) {
-   >   >   	//大量的if判断当前状态码，判断是否有符合条件
-   >   >       try {
-   >   >           //405
-   >   >           if (ex instanceof HttpRequestMethodNotSupportedException) {
-   >   >               return handleHttpRequestMethodNotSupported(
-   >   >                   (HttpRequestMethodNotSupportedException) ex, request, response, handler);
-   >   >           }
-   >   >           //415
-   >   >           else if (ex instanceof HttpMediaTypeNotSupportedException) {
-   >   >               return handleHttpMediaTypeNotSupported(
-   >   >                   (HttpMediaTypeNotSupportedException) ex, request, response, handler);
-   >   >           }
-   >   >           //406
-   >   >           else if (ex instanceof HttpMediaTypeNotAcceptableException) {
-   >   >               return handleHttpMediaTypeNotAcceptable(
-   >   >                   (HttpMediaTypeNotAcceptableException) ex, request, response, handler);
-   >   >           }
-   >   >           //500
-   >   >           else if (ex instanceof MissingPathVariableException) {
-   >   >               return handleMissingPathVariable(
-   >   >                   (MissingPathVariableException) ex, request, response, handler);
-   >   >           }
-   >   >           //400
-   >   >           else if (ex instanceof MissingServletRequestParameterException) {
-   >   >               return handleMissingServletRequestParameter(
-   >   >                   (MissingServletRequestParameterException) ex, request, response, handler);
-   >   >           }//400
-   >   >           else if (ex instanceof ServletRequestBindingException) {
-   >   >               return handleServletRequestBindingException(
-   >   >                   (ServletRequestBindingException) ex, request, response, handler);
-   >   >           }
-   >   >           //500
-   >   >           else if (ex instanceof ConversionNotSupportedException) {
-   >   >               return handleConversionNotSupported(
-   >   >                   (ConversionNotSupportedException) ex, request, response, handler);
-   >   >           }
-   >   >           //400
-   >   >           else if (ex instanceof TypeMismatchException) {
-   >   >               return handleTypeMismatch(
-   >   >                   (TypeMismatchException) ex, request, response, handler);
-   >   >           }
-   >   >           //400
-   >   >           else if (ex instanceof HttpMessageNotReadableException) {
-   >   >               return handleHttpMessageNotReadable(
-   >   >                   (HttpMessageNotReadableException) ex, request, response, handler);
-   >   >           }
-   >   >           //500
-   >   >           else if (ex instanceof HttpMessageNotWritableException) {
-   >   >               return handleHttpMessageNotWritable(
-   >   >                   (HttpMessageNotWritableException) ex, request, response, handler);
-   >   >           }
-   >   >           //400
-   >   >           else if (ex instanceof MethodArgumentNotValidException) {
-   >   >               return handleMethodArgumentNotValidException(
-   >   >                   (MethodArgumentNotValidException) ex, request, response, handler);
-   >   >           }
-   >   >           //400
-   >   >           else if (ex instanceof MissingServletRequestPartException) {
-   >   >               return handleMissingServletRequestPartException(
-   >   >                   (MissingServletRequestPartException) ex, request, response, handler);
-   >   >           }
-   >   >           //400
-   >   >           else if (ex instanceof BindException) {
-   >   >               return handleBindException((BindException) ex, request, response, handler);
-   >   >           }
-   >   >           //404
-   >   >           else if (ex instanceof NoHandlerFoundException) {
-   >   >               return handleNoHandlerFoundException(
-   >   >                   (NoHandlerFoundException) ex, request, response, handler);
-   >   >           }
-   >   >           //503
-   >   >           else if (ex instanceof AsyncRequestTimeoutException) {
-   >   >               return handleAsyncRequestTimeoutException(
-   >   >                   (AsyncRequestTimeoutException) ex, request, response, handler);
-   >   >           }
-   >   >       }
-   >   >       catch (Exception handlerEx) {
-   >   >           if (logger.isWarnEnabled()) {
-   >   >               logger.warn("Failure while trying to resolve exception [" + ex.getClass().getName() + "]", handlerEx);
-   >   >           }
-   >   >       }
-   >   >       return null;
-   >   >   }
-   >   >   ```
+   >   >   ***用于自定义异常处理类：SimpleMappingExceptionResolver（SpringMvc）***
+   >   >   
+   >   >   | Exception                               | HTTP Status Code                |
+   >   >   | --------------------------------------- | ------------------------------- |
+   >   >   | HttpRequestMethodNotSupportedException  | 405 (SC_METHOD_NOT_ALLOWED)     |
+   >   >   | HttpMediaTypeNotSupportedException      | 415 (SC_UNSUPPORTED_MEDIA_TYPE) |
+   >   >   | HttpMediaTypeNotAcceptableException     | 406 (SC_NOT_ACCEPTABLE)         |
+   >   >   | MissingPathVariableException            | 500 (SC_INTERNAL_SERVER_ERROR)  |
+   >   >   | MissingServletRequestParameterException | 400 (SC_BAD_REQUEST)            |
+   >   >   | ServletRequestBindingException          | 400 (SC_BAD_REQUEST)            |
+   >   >   | ConversionNotSupportedException         | 500 (SC_INTERNAL_SERVER_ERROR)  |
+   >   >   | TypeMismatchException                   | 400 (SC_BAD_REQUEST)            |
+   >   >   | HttpMessageNotReadableException         | 400 (SC_BAD_REQUEST)            |
+   >   >   | HttpMessageNotWritableException         | 500 (SC_INTERNAL_SERVER_ERROR)  |
+   >   >   | MethodArgumentNotValidException         | 400 (SC_BAD_REQUEST)            |
+   >   >   | MissingServletRequestPartException      | 400 (SC_BAD_REQUEST)            |
+   >   >   | BindException                           | 400 (SC_BAD_REQUEST)            |
+   >   >   | NoHandlerFoundException                 | 404 (SC_NOT_FOUND)              |
+   >   >   | AsyncRequestTimeoutException            | 503 (SC_SERVICE_UNAVAILABLE)    |
+   >   >
+   >   > 
    >
    > + 无法解析异常，则抛出异常给`DispatcherServlet#doDispatch`
-
+   
 4. `DispatcherServlet#doDispatch`捕获到异常，进行拦截器处理，即调用拦截器的`afterCompletion`方法
 
    ```java
@@ -4692,9 +4617,9 @@ public String basic_table(Model model) {
    >
    > 做完这个操作，依序diao用到下一步
 
-5. **`StandardHostValve#incoke`捕获到异常，进行处理 `throwable(request, response, t);`**
+5. **因为没有任何人处理异常，tomcat容器底层，`StandardHostValve#incoke`捕获到异常，进行处理 `throwable(request, response, t);`**
 
-   此步骤才是真正的发生/error请求并进行处理
+   **此步骤才是真正的发生/error请求并进行处理**
 
    ```java
    //StandardHostValve#throwable
@@ -4708,16 +4633,270 @@ public String basic_table(Model model) {
        status(request, response);
    }
    ```
-
+   > ***找到默认的错误页：***
+   >
    > ```java
    > //StandardHostValve#status 继续调用status方法
    > 
-   > //尝试从当前请求的上下文中获取到当前状态码uerrorPage
+   > //尝试从当前请求的上下文中获取到当前状态码对应errorPage
    > Context context = request.getContext();
    > ErrorPage errorPage = context.findErrorPage(statusCode);
+   > //如果没找到
+   > if (errorPage == null) {
+   >  // Look for a default error page
+   >  errorPage = context.findErrorPage(0);
+   > }
    > ```
+   >
+   > tomcat底层有一个默认错误页，没有发现错误页就使用默认的，访问路径就是`/error` ***即在此处调用/error请求***
+   >
+   >  拦截路径：http://localhost:8080/error
+   >
+   > ![image-20220901092757653](\img\image-20220901092757653.png)
+   >
+   > 开始向request存放数据(**均是tomcat底层做的**)，：
+   >
+   > + javax.servlet.error.status_code：500
+   > + javax.servlet.error.message：“”
+   > + org.apache.catalina.core.DISPATCHER_REQUEST_PATH：/error
+   > + org.apache.catalina.core.DISPATCHER_TYPE：ERROR
+   > + javax.servlet.error.servlet_name：dispatcherServlet
+   > + javax.servlet.error.request_uri：/basic_table
+   >
+   > **tomcat容器底层，包装/error请求，和dispatcherServlet映射**
+   >
+   > ```java
+   > //custom 表示是够有设置的自定义错误码、java异常的错误页
+   > //	是有的Dispatcher Servlet默认是whitelable，还有我们自定义的页面
+   > if (custom(request, response, errorPage)) {
+   >     response.setErrorReported();
+   >     try {
+   >         response.finishResponse();
+   >     } catch (ClientAbortException e) {
+   >         // Ignore
+   >     } catch (IOException e) {
+   >         container.getLogger().warn("Exception Processing " + errorPage, e);
+   >     }
+   > }
+   > ```
+   >
+   > > 向新包装的request域中存放
+   > >
+   > > + javax.servlet.include.request_uri：/error
+   > > + javax.servlet.include.context_path：“”
+   > > + javax.servlet.include.servlet_path：/error
+   > > + javax.servlet.include.mapping：映射路径 ("/"就是DispatcherServlet)
+   > > + org.apache.catalina.core.DISPATCHER_TYPE：INCLUDE
+   > > + org.apache.catalina.core.DISPATCHER_REQUEST_PATH：/error
+   >
+   > tomcat底层开始调用dispatcherServlet组件拦截`/error`请求（该请求里面包含了原来的请求`/basic_table`）路径
+   >
+   > ```java
+   > /*
+   > StandardHostValve#custom ==> ApplicationDispatcher#include ==> ApplicationDispatcher#doInclude ==> ApplicationDispatcher#invoke（获取前端控制器，下面就是正常处理请求的流程）==》 ApplicationFilterChain#doFilter ==> ApplicationFilterChain#internalDoFilter（过滤器进行过滤） ==> ... ==> DispatcherServlet#doDispatch
+   > 
+   > */
+   > ```
+   >
+   > 
 
-6. 
+6. <font color='red'>***终于：/error请求被DispatcherServlet前端控制器接收到：***</font>
+
+   > + **获取到controller即：`BasicErrorController#errorHtml`(浏览器)**
+   >
+   > + **调用errorHtml函数**
+   >
+   >   ```java
+   >   @RequestMapping(produces = MediaType.TEXT_HTML_VALUE)
+   >   public ModelAndView errorHtml(HttpServletRequest request, HttpServletResponse response) {
+   >      //根据前面tomcat容器向request域中存放的javax.servlet.error.status_code 500
+   >       HttpStatus status = getStatus(request);
+   >       //获取异常刚开始调用DefaultErrorAttributes保存的异常信息
+   >      Map<String, Object> model = Collections
+   >            .unmodifiableMap(getErrorAttributes(request, getErrorAttributeOptions(request, MediaType.TEXT_HTML)));
+   >       //设置响应状态码 500
+   >      response.setStatus(status.value());
+   >       //开始调用 DefaultErrorViewResolver视图解析器 获取自定义的html页面
+   >      ModelAndView modelAndView = resolveErrorView(request, response, status, model);
+   >       //如果没有自定义的错误模板，就使用默认的error视图名，内容是whitelable
+   >      return (modelAndView != null) ? modelAndView : new ModelAndView("error", model);
+   >   }
+   >   ```
+   >
+   > + ***调用 `DefaultErrorViewResolver` 视图解析器，开始解析自定义视图***
+   >
+   >   ```java
+   >   public ModelAndView resolveErrorView(HttpServletRequest request, HttpStatus status, Map<String, Object> model) {
+   >       //先根据状态码 查找匹配页面
+   >      ModelAndView modelAndView = resolve(String.valueOf(status.value()), model);
+   >       //如果根据状态码没有找到错误页面，那么就根据4xx和5xx规则来匹配
+   >      if (modelAndView == null && SERIES_VIEWS.containsKey(status.series())) {
+   >         modelAndView = resolve(SERIES_VIEWS.get(status.series()), model);
+   >      }
+   >      return modelAndView;
+   >   }
+   >   ```
+   >
+   >   > ```java
+   >   > //DefaultErrorViewResolver#resolve
+   >   > private ModelAndView resolve(String viewName, Map<String, Object> model) {
+   >   >     //  文件名error/5xx
+   >   >    String errorViewName = "error/" + viewName;
+   >   >     //获取视图渲染的模板引擎【SpringTemplateEngine】，此函数的作用就是判断springboot支持的5个模板引擎类哪一个类能够被找到且可被加载 ==》找到了thymeleaf
+   >   >    TemplateAvailabilityProvider provider = this.templateAvailabilityProviders.getProvider(errorViewName,
+   >   >          this.applicationContext);
+   >   >    if (provider != null) {
+   >   >       return new ModelAndView(errorViewName, model);
+   >   >    }
+   >   >    return resolveResource(errorViewName, model);
+   >   > }
+   >   > 
+   >   > //【SpringTemplateEngine】 thymeleaf模板类
+   >   > public class ThymeleafTemplateAvailabilityProvider implements TemplateAvailabilityProvider {
+   >   > 
+   >   > 	@Override
+   >   > 	public boolean isTemplateAvailable(String view, 
+   >   >                                        Environment environment, 
+   >   >                                        ClassLoader classLoader,
+   >   > 			ResourceLoader resourceLoader) {
+   >   >         //SpringTemplateEngine类存在且可被加载
+   >   > 		if (ClassUtils.isPresent("org.thymeleaf.spring5.SpringTemplateEngine", classLoader)) {
+   >   > 			String prefix = environment.getProperty("spring.thymeleaf.prefix", ThymeleafProperties.DEFAULT_PREFIX);
+   >   > 			String suffix = environment.getProperty("spring.thymeleaf.suffix", ThymeleafProperties.DEFAULT_SUFFIX);
+   >   >             //然后从模板中找： templates/error/500.html[不存在因为是5xx]
+   >   > 			return resourceLoader.getResource(prefix + view + suffix).exists();
+   >   > 		}
+   >   > 		return false;
+   >   > 	}
+   >   > 
+   >   > }
+   >   > ```
+   >   >
+   >   > ![image-20220901133355310](\img\image-20220901133355310-16620105374141.png)
+   >   >
+   >   > ```java
+   >   > //如果没有支持的模板引擎的话，就开始读取springboot静态目录
+   >   > private ModelAndView resolveResource(String viewName, Map<String, Object> model) {
+   >   >     //springboot静态目录
+   >   >    for (String location : this.resources.getStaticLocations()) {
+   >   >       try {
+   >   >          Resource resource = this.applicationContext.getResource(location);
+   >   >          resource = resource.createRelative(viewName + ".html");
+   >   >          if (resource.exists()) {
+   >   >             return new ModelAndView(new HtmlResourceView(resource), model);
+   >   >          }
+   >   >       }
+   >   >       catch (Exception ex) {
+   >   >       }
+   >   >    }
+   >   >    return null;
+   >   > }
+   >   > ```
+   >   >
+   >   > ![image-20220901111848035](\img\image-20220901111848035.png)
+   >   >
+   >   > 
+   >
+   > + **遍历视图解析器，thymeleaf开始渲染视图(结束)**
+
+
+
+#### 5、`BasicErrorController`、`DefaultErrorAttributes`及`DefaultErrorViewResolver`的调用顺序
+
+当发生错误时前端控制器DispatcherServlet会捕获异常，进行处理：
+
+1. 首先`DispatcherServlet#processDispatchResult`会调用`handlerExceptionResolvers`处理器异常解析器遍历解析
+
+   <font color='red'>首先调用：`DefaultErrorAttributes`向request域中保存当前异常信息</font>
+
+   ![image-20220831145843546](img\image-20220831145843546.png)
+
+   <font color='yellow'>其次，这15种异常（见上面表格）会被`DefaultHandlerExceptionResolver`处理(本次不在内，返回null)</font>
+
+   ***
+
+   【注意：异常没人处理，tomcat容器才会自动发送一个新请求/error】
+
+   ***如果我们自定义了一个异常处理器，或异常映射，则直接接受处理异常了。下面均不会执行了***
+
+   ***
+
+2. tomcat容器将当前(`/basic_table`)请求设置为结束状态，然后重新包装一个`/error`请求（里面包含原始的`/basic_table`请求）
+
+3. 新的request请求`/error`被DispatcherServlet前端控制器捕获到，获取对应的控制器方法`BasicErrorController#errorHtml`（浏览器发送的）
+
+   <font color='red'>其次调用：`BasicErrorController`再次从`DefaultErrorAttributes`获得异常信息，尝试返回ModelAndView</font>
+
+   > + <font color='pink'>*首先根据响应码：500，尝试获取springboot的默认5大模板引擎找到【SpringTemplateEngine】即thymeleaf*，加上前后缀后，尝试读取**templates/error/500.html**文件</font>（失败）
+>
+   >   
+>
+   > + <font color='pink'>*其次根据响应码：500，从springboot静态目录下的error获取500.html文件*，如果存在直接返回对应ModelAndView</font>（失败）
+>
+   >   
+>
+   > + <font color='pink'>*最后根据响应码序列：5（默认的map集合4xx，5xx）对应5xx获取**templates/error/5xx.html**文件*，存在直接返回对应ModelAndView</font>（成功）
+>
+   >   
+>
+   > + <font color='pink'>*最后，如果以上3布都没有找到，那么就返回默认的ModelAndView。其中视图名为error【被BeanNameViewResolver解析，即ioc中bean组件】，返回的内容就是Whitelable*</font>
+
+4. 下面就是正常的模板渲染render流程了
+
+   + 要么BeanNameViewResolver解析
+   + 要么ThymeleafViewResolver解析
+
+
+
+
+
+#### 6、使得HandlerExceptionResolver可以处理异常（目的：返回ModelAndView）自己
+
+即使图中这三个异常解析器均生效：![image-20220831150515645](D:\JavaWork\SpringBoot\Note\img\image-20220831150515645-16620148015082.png)
+
++ ***ExceptionHandlerExceptionResolver*** ：用于处理`@ExceptionHandler`注解
+
+  > **步骤：**
+  >
+  > ​	自己写一个方法（返回值为ModelAndView类型，<font color='red'>【进限当前controller方法类内，标注了此注解的方法】</font>）标注`@ExceptionHandler`注解，参数为可以处理的异常类型（必须要写），则发生算术异常就会直接调用此方法返回
+  >
+  > ```java
+  > @ExceptionHandler(ArithmeticException.class)//默认所有异常均会调用此方法
+  > @ResponseBody
+  > //其实就是发生指定异常后，可以调用的另外一个controller方法（返回值为ModelAndView）
+  > public String exceptionResolver(HttpServletRequest request) {
+  >     Object attribute = request.getAttribute("org.springframework.boot.web.servlet.error.DefaultErrorAttributes.ERROR");
+  >     return "<h1>发生异常，" + attribute.toString() + "</h1>";
+  > }
+  > ```
+  >
+  > **原理：**
+  >
+  > ​	当异常被`ExceptionHandlerExceptionResolver`接收到，先尝试从异常处理器缓存中取出`ExceptionHandlerMethodResolver`
+  >
+  > ```java
+  > ExceptionHandlerMethodResolver resolver = this.exceptionHandlerCache.get(handlerType);
+  > ```
+  >
+  > 如果为null，就尝试去新建立一个`ExceptionHandlerMethodResolver`，此时就会找调用`selectMethods`方法去找标注`@ExceptionHandler`注解<font color='red'>【进限当前controller方法类内，标注了此注解的方法】</font>，建立起【发生异常的controller方法，标注了处理该异常的注解方法】并放到缓存池中
+  >
+  > ```java
+  > resolver = new ExceptionHandlerMethodResolver(handlerType);
+  > 
+  > MethodIntrospector.selectMethods(handlerType, EXCEPTION_HANDLER_METHODS)
+  > ```
+  >
+  > 将上面 标注了处理该异常的`@ExceptionHandler`注解方法当作是控制器方法执行，返回ModelAndView并交由前端控制器进行渲染render
+
++ ***ResponseStatusExceptionResolve*** ：用于处理`@ResponseStatus`注解 (需要放在抛出异常的那个类上才行)
+
+  
+
++ ***DefaultHandlerExceptionResolver*** ：用于处理15种固定异常
+
+
+
+
 
 
 

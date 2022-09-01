@@ -2,10 +2,16 @@ package com.ly.admin.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -18,6 +24,14 @@ import javax.servlet.http.HttpSession;
 public class DataTableController {
     private final Logger log = LoggerFactory.getLogger(DataTableController.class);
 
+    //@ExceptionHandler(/*ArithmeticException.class*/)
+    @ResponseBody
+    public String exceptionResolver(HttpServletRequest request) {
+        Object attribute = request.getAttribute("org.springframework.boot.web.servlet.error.DefaultErrorAttributes.ERROR");
+        return "<h1>发生异常，" + attribute.toString() + "</h1>";
+    }
+
+    @ResponseStatus(code = HttpStatus.OK,reason = "服务器内部错误")
     @GetMapping({"/basic_table"})
     public String basic_table(Model model) {
         int i = 10 / 0;
