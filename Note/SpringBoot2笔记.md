@@ -5037,11 +5037,136 @@ public String basic_table(Model model) {
 
 ***
 
-### 10、Web原生三大组件注入（Servlet、Filter、Listener）
+### 10、Web原生三大组件注入（Servlet、Filter、Listener） ***推荐***
+
+#### 1、使用Servlet API
+
++ ***Servlet***
+
+  > 1、使用`@WebServlet`注解定义一个Servlet组件
+  >
+  > ```java
+  > @WebServlet(urlPatterns = "/lao_tie")
+  > public class LTServlet extends HttpServlet {
+  >     @Override
+  >     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  >         resp.getWriter().write("666，老铁没毛病！");
+  >     }
+  > }
+  > ```
+  >
+  > 2、在SpringBoot配置类上使用`@ServletComponentScan`注解，将servlet注入到tomcat容器中
+  >
+  > ```java
+  > @ServletComponentScan(basePackageClasses = {LTServlet.class})
+  > @Configuration(proxyBeanMethods = false)
+  > public class MyConfig implements WebMvcConfigurer {}
+  > ```
+  >
+  > **细节：**浏览器访问/lao_tie路径没有触发DispatcherServlet，而是使用我们自己定义的Servlet
+  >
+  > 
+
++ ***Filter***
+
+  > 1、使用`@WebFilter`注解定义一个Servlet组件
+  >
+  > ```java
+  > @WebFilter(urlPatterns = {"/css/*","/js/*"})
+  > public class MyFilter implements Filter {
+  >     @Override
+  >     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+  >         HttpServletRequest req = (HttpServletRequest) request;
+  >         log.info(this.getClass() + "拦截到！" + req.getRequestURL());
+  >         chain.doFilter(request,response);
+  >     }
+  > }
+  > ```
+  >
+  > 2、在SpringBoot配置类上使用`@ServletComponentScan`注解，将Filter注入到tomcat容器中
+
++ ***Listener***
+
+  > 1、使用`@WebListener`注解定义一个Listener组件
+  >
+  > ```java
+  > @Slf4j
+  > @WebListener
+  > public class MyListener implements ServletContextListener {
+  >     @Override
+  >     public void contextInitialized(ServletContextEvent sce) {
+  >         log.info(this.getClass() + "监听到 ServletContext 初始化完成！");
+  >     }
+  > 
+  >     @Override
+  >     public void contextDestroyed(ServletContextEvent sce) {
+  >         log.info(this.getClass() + "监听到 ServletContext 销毁！");
+  >     }
+  > }
+  > ```
+  >
+  > 2、在SpringBoot配置类上使用`@ServletComponentScan`注解，将Listener注入到tomcat容器中
+
+#### 2、使用RegistrationBean(在初始化时注入)
+
+借助Servlet3.0的底层原理，通过`ServletContextInitializer`的抽象类`RegistrationBean`的子类们实现：
+
+![image-20220902152419958](img\image-20220902152419958.png)
+
+> 底层原理都是`ServletContextInitializer`的`onStartup`方法在servletContext初始化前添加，所以也可以自己实现此接口添加
+
+```java
+@Configuration//配置类中，加入springioc容器，自动注入到tomcat容器
+public class MyRegisterBeanConfig {
+    @Bean
+    public ServletRegistrationBean<LTServlet> myServlet() {
+        LTServlet ltServlet = new LTServlet();
+        return new ServletRegistrationBean<LTServlet>(ltServlet,"/lao_tie","/lt");
+    }
+
+    @Bean
+    public FilterRegistrationBean<MyFilter> myFilter() {
+        MyFilter myFilter = new MyFilter();
+        FilterRegistrationBean<MyFilter> filterRegistrationBean = new FilterRegistrationBean<>();
+        filterRegistrationBean.setFilter(myFilter);
+        //指定拦截某个servlet即，servlet处理啥请求，他就拦截什么请求
+        //filterRegistrationBean.addServletRegistrationBeans(myServlet());
+        filterRegistrationBean.addUrlPatterns("/css/*","/js/*","/images/*");
+        return filterRegistrationBean;
+    }
+
+    @Bean
+    public ServletListenerRegistrationBean<MyListener> myListener() {
+        MyListener myListener = new MyListener();
+        ServletListenerRegistrationBean<MyListener> listenerRegistrationBean = new ServletListenerRegistrationBean<>();
+        listenerRegistrationBean.setListener(myListener);
+        return listenerRegistrationBean;
+    }
+}
+```
+
+#### 3、其他方式请见《spring注解驱动开发》笔记中的servlet3.0章节
 
 
 
+#### *4、Tomcat容器中多个Servlet的工作机制*
 
+就如上面我们自己创建的`LTServlet`和SpringMVC的`DispatcherServlet`
+
+> + `LTServlet`  -->`/lao_tie`
+> + `DispatcherServlet`  --> `/`
+
+***DspatcherServlet自动配置：***
+
+> `org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration`自动配置类中配置，给ioc容器中添加名字为`dispatcherServlet`的组件，映射路径默认为`/`
+>
+> **自动配置类中通过`DispatcherServletRegistrationBean`其实就是`ServletRegistrationBean(ServletContextInitializer)`注册到tomcat容器中**
+
+![image-20220902160934685](img\image-20220902160934685.png)
+
+> 类似web.xml中过滤器的先后为：在配置文件中的顺序
+>
+> ***多个Servlet都能处理到同一层路径，精确优选原则***
 
 ## 2.3、数据访问
 
