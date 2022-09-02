@@ -4330,14 +4330,122 @@ public ResponseEntity<byte[]> download(@RequestParam("filename")String filename,
 
 #### <font color='yellow'>***2、定制错误处理逻辑（重要）***</font>
 
-+ *自定义错误页*
-+ *借助`@ControllerAdvice`和`@ExceptionHandler`处理全局异常*
++ *自定义错误页*（静态目录和templates目录下error目录中的4xx和5xx页面）
+
+  > `BasicErrorController(处理/error请求)` + `DefaultErrorViewResolver（视图解析器）`解析4xx和5xx类的页面
+
++ *借助`@ControllerAdvice`和`@ExceptionHandler`处理全局异常* <font color='red'>【针对于全局异常】</font>==推荐==
+
+  > `ExceptionHandlerExceptionResolver`解析`@ExceptionHandler`注解
+  >
+  > ```java
+  > @ControllerAdvice //【处理全局异常】
+  > //此注解的类，自动放到ioc容器中，会接受方法中指定的异常
+  > public class GlobalExceptionHandler {
+  > 
+  >     @ResponseBody
+  >     @ExceptionHandler(ServerException.class)
+  >     //其实就是发生指定异常后，可以调用的另外一个controller方法（返回值为ModelAndView）
+  >     public String resolver(Exception e) {//自动注入获取异常
+  >         return "全局异常处理器";
+  >     }
+  > }
+  > ```
+
++ *借助`@ExceptionHandler`处理本类类所在异常* <font color='red'>【仅针对于本类发生的异常】</font>
+
+  > `ExceptionHandlerExceptionResolver`解析`@ExceptionHandler`注解
+  >
+  > ```java
+  > @ExceptionHandler(ArithmeticException.class)
+  > @ResponseBody
+  > //其实就是发生指定异常后，可以调用的另外一个controller方法（返回值为ModelAndView）
+  > public String exceptionResolver(HttpServletRequest request,Exception e) {//自动注入获取异常	
+  >     Object attribute = request.getAttribute("org.springframework.boot.web.servlet.error.DefaultErrorAttributes.ERROR");
+  >     return "<h1>发生异常，" + attribute.toString() + "</h1>";
+  > }
+  > 
+  > @GetMapping({"/basic_table"})//异常所在类
+  > public String basic_table(Model model) throws ServerException {
+  >     int i = 10 / 0;
+  >     log.info("uri = basic_table");
+  >     model.addAttribute("nowUri","basic_table");
+  >     return "table/basic_table";
+  > }
+  > ```
+
 + *`@ResponseStatus` + 自定义异常*
+
+  > `ResponseStatusExceptionResolver`解析`@ResponseStatus`注解
+  >
+  > ```java
+  > @ResponseStatus(reason = "my exception test!")
+  > public class ServerException extends Exception{
+  > }
+  > ```
+
 + *Spring底层的异常，如：参数类型转换异常*
-+ *自定义实现`HandlerExceptionResolver`处理异常*
-+ *`ErrorViewResolver`实现自定义处理异常*
+
+  > `DefaultHandlerExceptionResolver`处理Spring底层 15种父类及其子类异常
+  >
+  > 包括：`@RequestMapping`参数不存在异常等等
+
++ *自定义实现`HandlerExceptionResolver`类处理异常<font color='red'>（加到ioc容器中，传递到前端控制器的`handlerExceptionResolvers`属性中，为了优先使用实现Ordered接口）</font>*
+
+  > ```java
+  > @Component
+  > //必须加到ioc容器中，才能自动传递到DIspatcher Servlet中
+  > //为了优先使用实现Ordered接口
+  > public class CustomerExceptionResolver implements HandlerExceptionResolver , Ordered {
+  >     @Override
+  >     public ModelAndView resolveException(HttpServletRequest request,
+  >                                          HttpServletResponse response,
+  >                                          Object handler, Exception ex) {
+  >         //如果不解决（返回null或空的ModelAndView），就是默认的/error请求
+  >         if (ex instanceof RuntimeException) { //自动换成了RuntimeException
+  >             return new ModelAndView("login");
+  >         }
+  >         //response.sendError(511,"我喜欢的状态码"); 
+  >         //return new ModelAndView();
+  >         return null;
+  >     }
+  > 
+  >     @Override
+  >     public int getOrder() {
+  >         return Ordered.HIGHEST_PRECEDENCE;
+  >     }
+  > }
+  > ```
+
++ *`ErrorViewResolver`实现自定义处理异常<font color='red'>处理`/error`请求的，触发时机就是`BasicErrorController`中调用错误视图解析（所以自己自定义的错误视图解析器会在此时生效）</font>*
+
+  > `BasicErrorController`转发`/error`，默认是`DefaultErrorViewResolver（容器中没有ErrorViewResolver类型的才会放入）`解析，但是自己定义了视图解析器，则只会有自己定义的了
+
+  > ```java
+  > //原理都是底层调用tomcat的 response.sendError();函数 
+  > /*
+  > 	有两种触发方式：
+  > 		1、异常没人处理，或者都无法处理
+  > 		2、自己手动调用此函数
+  > */
+  > ```
+  >
+  > ```java
+  > @Component//放到容器中，当tomcat发送/error请求时会被调用
+  > public class MyErrorViewResolver implements ErrorViewResolver {
+  >     @Override
+  >     public ModelAndView resolveErrorView(HttpServletRequest request,
+  >                                          HttpStatus status,
+  >                                          Map<String, Object> model) {
+  >         log.info("status=" + status + "");
+  >         return new ModelAndView("calendar");
+  >     }
+  > }
+  > ```
 
 
+
+***
 
 #### 3、异常处理自动配置原理
 
@@ -4621,6 +4729,8 @@ public String basic_table(Model model) {
 
    **此步骤才是真正的发生/error请求并进行处理**
 
+   ![image-20220902112644118](img\image-20220902112644118.png)
+
    ```java
    //StandardHostValve#throwable
    //没有存在自定义的500错误页，则调用第三方
@@ -4878,7 +4988,7 @@ public String basic_table(Model model) {
   > ExceptionHandlerMethodResolver resolver = this.exceptionHandlerCache.get(handlerType);
   > ```
   >
-  > 如果为null，就尝试去新建立一个`ExceptionHandlerMethodResolver`，此时就会找调用`selectMethods`方法去找标注`@ExceptionHandler`注解<font color='red'>【进限当前controller方法类内，标注了此注解的方法】</font>，建立起【发生异常的controller方法，标注了处理该异常的注解方法】并放到缓存池中
+  > 如果为null，就尝试去新建立一个`ExceptionHandlerMethodResolver`，此时就会找调用`selectMethods`方法去找标注`@ExceptionHandler`注解<font color='red'>【仅限当前controller方法类内，标注了此注解的方法】</font>，建立起【发生异常的controller方法，标注了处理该异常的注解方法】并放到缓存池中
   >
   > ```java
   > resolver = new ExceptionHandlerMethodResolver(handlerType);
@@ -4888,13 +4998,46 @@ public String basic_table(Model model) {
   >
   > 将上面 标注了处理该异常的`@ExceptionHandler`注解方法当作是控制器方法执行，返回ModelAndView并交由前端控制器进行渲染render
 
-+ ***ResponseStatusExceptionResolve*** ：用于处理`@ResponseStatus`注解 (需要放在抛出异常的那个类上才行)
++ ***ResponseStatusExceptionResolver*** ：用于处理`@ResponseStatus`注解 (需要放在抛出异常的那个类上才行，<font color='red'>【仅限自定义异常，否则没办法在类上添加注解】</font>)，==最后会抛出`IllegalStateException`异常，然后tomcat容器或重新发送/error请求，被`BasicErrorController`接受处理。==
 
-  
+  > ***使用：***
+  >
+  > ```java
+  > @ResponseStatus(reason = "my exception test!")
+  > public class ServerException extends Exception{
+  > }
+  > ```
+  >
+  > ***原理：***
+  >
+  > 当异常被`ResponseStatusExceptionResolver`捕获后，会根据注解工具类`AnnotatedElementUtils`来判断该异常类上是否标注`@ResponseStatus`注解：
+  >
+  > ```java
+  > response.sendError(statusCode, resolvedReason);
+  > ```
+  >
+  > ==最后会返回空的ModleAndView，都处理不了异常，然后tomcat容器或重新发送/error请求，被`BasicErrorController`接受处理。（重复5中步骤）==
 
-+ ***DefaultHandlerExceptionResolver*** ：用于处理15种固定异常
++ ***DefaultHandlerExceptionResolver*** ：用于处理15种固定异常及其子类
 
+  > ***使用：***
+  >
+  > springboot自动使用
+  >
+  > ***原理：***
+  >
+  > 类型判断，如果满足：response发送error信息，然后直接返回一个空的ModelAndView。
+  >
+  > ```java
+  > response.sendError(HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
+  > return new ModelAndView();
+  > ```
+  >
+  > ==最后会返回空的ModleAndView，都处理不了异常，然后tomcat容器或重新发送/error请求，被`BasicErrorController`接受处理。（重复5中步骤）==
 
+***
+
+### 10、Web原生三大组件注入（Servlet、Filter、Listener）
 
 
 

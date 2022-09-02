@@ -1,5 +1,6 @@
 package com.ly.admin.controller;
 
+import com.ly.admin.exception.ServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,27 +27,34 @@ public class DataTableController {
 
     //@ExceptionHandler(/*ArithmeticException.class*/)
     @ResponseBody
-    public String exceptionResolver(HttpServletRequest request) {
+    public String exceptionResolver(HttpServletRequest request,Exception e) {
         Object attribute = request.getAttribute("org.springframework.boot.web.servlet.error.DefaultErrorAttributes.ERROR");
         return "<h1>发生异常，" + attribute.toString() + "</h1>";
     }
 
-    @ResponseStatus(code = HttpStatus.OK,reason = "服务器内部错误")
+    //@ResponseStatus(code = HttpStatus.OK,reason = "服务器内部错误")
     @GetMapping({"/basic_table"})
-    public String basic_table(Model model) {
-        int i = 10 / 0;
-        log.info("uri = basic_table");
-        model.addAttribute("nowUri","basic_table");
-        return "table/basic_table";
+    public String basic_table(Model model) throws ServerException {
+        //int i = 10 / 0;
+        throw new ServerException();
+        //log.info("uri = basic_table");
+        //model.addAttribute("nowUri","basic_table");
+        //return "table/basic_table";
     }
     @GetMapping({"/dynamic_table"})
     public String dynamic_table(Model model) {
+        if (model != null) {
+            throw new RuntimeException("自定义异常");
+        }
         log.info("uri = dynamic_table");
         model.addAttribute("nowUri","dynamic_table");
         return "table/dynamic_table";
     }
     @GetMapping({"/responsive_table"})
     public String responsive_table(Model model) {
+        if (model != null) {
+            throw new ArithmeticException("1/0");
+        }
         log.info("uri = responsive_table");
         model.addAttribute("nowUri","responsive_table");
         return "table/responsive_table";
