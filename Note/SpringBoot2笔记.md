@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                             
+>                               
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                                 
+>                                   
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                             
+>                               
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                          
+>   	                            
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                                         
+>                                                             
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                                
+>                                                                    
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                                     
+>                                                                         
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                          
+>   >                             
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -4207,7 +4207,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >           
+  >             
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -5167,6 +5167,140 @@ public class MyRegisterBeanConfig {
 > 类似web.xml中过滤器的先后为：在配置文件中的顺序
 >
 > ***多个Servlet都能处理到同一层路径，精确优选原则***
+
+### 11、嵌入式Servlet容器
+
+#### 1、切换嵌入式Servlet容器
+
+***默认支持的WebServlet容器：***
+
++ Tomcat、Jetty、Undertow
+
++ 原理：
+
+  > 1.嵌入式servlet容器依赖于springboot中一个特殊的ApplicationContext（即ioc容器）**`ServletWebServerApplicationContext`**。
+  >
+  > 2.**`ServletWebServerApplicationContext`**是一种特殊的**`WebApplicationContext`**（即web ioc容器）。
+  >
+  > 3.当程序启动时，引导程序就会寻找一个单实例bean***`ServletWebServerFactory`***（通常是**`TomcatServletWebServerFactory`**, **`JettyServletWebServerFactory`**, or **`UndertowServletWebServerFactory`**）来创建服务器。
+
+
+
+***切换服务器（jetty、netty、tomcat、undertow）***
+
+任意切换下面四种中的一个
+
+![image-20220905145923623](\img\image-20220905145923623.png)
+
+*pom.xml中排除默认的tomcat场景，引入自己需要的web容器*
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+    <exclusions>
+        <!-- 排除掉spring-boot-starter-web场景启动器里面默认的tomcat-->
+        <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<!-- 引入自己需要的web容器类型-->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jetty</artifactId>
+</dependency>
+```
+
+
+
+***服务器加载步骤：***
+
+> 1. SpringBoot自动配置类**`ServletWebServerFactoryAutoConfiguration`**中引入了三种嵌入式服务器
+>
+>    ​	![image-20220905145150110](img\image-20220905145150110.png)
+>
+> 2. 然后根据pom文件依赖中引入的场景starter，判断加载哪一个Web服务器（因为我们引入的是tomcat_starter，所以给容器注入tomcat服务器）
+>
+> 3. 主程序启动时（即`SpringApplication.run`命令），准备好ioc容器且加载完组件后创建web模式下特殊的ioc容器<font color='yellow'>`ServletWebServerApplicationContext`</font>的子类**`AnnotationConfigServletWebServerApplicationContext`**
+>
+>    > <font color='pink'>web下特殊ioc容器**`ServletWebServerApplicationContext`**和						之前spring配置文件形式的ioc容器`ServletWebServerApplicationContext`					以及spring注解形式的ioc容器`AnnotationConfigApplicationContext`都是`AbstractApplicationContext`的子类</font>
+>
+> 4. 然后就是调用web下ioc容器的核心方法`refreshContext`，然后就来到spring中学习的核心方法：`refresh`
+>
+> 5. 调用`AbstractApplicationContext#onRefresh`方法就会来到子类的（及webioc）**ServletWebServerApplicationContext** 的`refresh`方法，进而调用**`createWebServer`**创建web服务器
+>
+>    ```java
+>    @Override
+>    protected void onRefresh() {
+>        super.onRefresh();
+>        try {
+>            createWebServer(); //创建web服务器
+>        }
+>    	...
+>    }
+>    ```
+>
+> 6. `createWebServer`方法内部也就是根据**ServletWebServerFactory**类型从ioc容器中取组件，自然取到的就是tomcat组件
+>
+>    > 如果ioc容器中没有*ServletWebServerFactory*类的组件，或者数量大于1均会报错
+>
+>    
+
+#### 2、定制Servlet容器
+
+##### 1、通过修改spring的配置文件（推荐）
+
+```yaml
+server:
+  jetty:  #jetty容器的
+    accesslog:
+      append: true
+
+  tomcat:  #tomcat容器的
+    accesslog:
+      buffered: true
+      
+  undertow: #undertow容器的
+    accesslog:
+      enabled: true
+```
+
+> ***原理：***
+>
+> web容器的自动配置类`ServletWebServerFactoryAutoConfiguration`依赖`ServerProperties`类，而`ServerProperties`类绑定了springboot配置文件中以“server”开头的属性
+
+##### 2、通过配置类，手动向IOC容器中加入**`ServletWebServerFactory`**类型的组件
+
+```java
+@Bean 
+//ConfigurableServletWebServerFactory是ServletWebServerFactory的子接口，里面提供了更多地方法进行设置
+public ConfigurableServletWebServerFactory servletWebServerFactory(){
+    TomcatServletWebServerFactory webServerFactory = new TomcatServletWebServerFactory();
+    webServerFactory.setPort(8888);
+    webServerFactory.setBackgroundProcessorDelay();
+    webServerFactory.setProtocol();
+    webServerFactory.setSsl();
+    webServerFactory.setSession();
+
+    return webServerFactory;
+}
+```
+
+##### 3、实现SpringBoot提供的**`WebServerFactoryCustomizer<ConfigurableServletWebServerFactory>`**，手动将配置文件中的属性和ioc容器中factory组件的属性值绑定
+
+作用就是将SpringBoot配置文件中的数据和ioc容器中组件属性绑定
+
+```java
+public class CustomizerWebServerFactoryAttributes implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
+
+    @Override
+    public void customize(ConfigurableServletWebServerFactory factory) {
+        factory.setPort(8888);
+    }
+}
+```
 
 ## 2.3、数据访问
 

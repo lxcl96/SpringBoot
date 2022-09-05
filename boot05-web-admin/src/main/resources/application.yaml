@@ -11,3 +11,15 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 100MB
+#server:
+#  jetty:
+#    accesslog:
+#      append: true
+#
+#  tomcat:
+#    accesslog:
+#      buffered: true
+#
+#  undertow:
+#    accesslog:
+#      enabled: true
