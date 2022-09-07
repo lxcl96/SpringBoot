@@ -218,7 +218,7 @@ public class HelloController {
 
 ==获取配置文件优先顺序：==
 
-![image-20220627164554967](img\springboot配置文件加载顺序.png)
+![image-20220627164554967](.\img\springboot配置文件加载顺序.png)
 
 官方文档：[Common Application Properties (spring.io)](https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties)
 
@@ -397,7 +397,7 @@ java -jar xxx.jar
   >
   > 所有自动配置均在`spring-boot-autoconfigure`包中配置
   >
-  > ![image-20220629143743248](img\image-20220629143743248.png)
+  > ![image-20220629143743248](.\img\image-20220629143743248.png)
   >
   > ***配置了所有常用功能：***
   >
@@ -2681,7 +2681,7 @@ public Person testPojoParam(Person person) {
 }
 ```
 
-> ![image-20220810141518323](img\image-20220810141518323.png)
+> ![image-20220810141518323](.\img\image-20220810141518323.png)
 
 ***解决方法：自定义转换器***
 
@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                               
+>                                 
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                                   
+>                                     
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                               
+>                                 
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                            
+>   	                              
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                                             
+>                                                                 
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                                    
+>                                                                        
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                                         
+>                                                                             
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -2860,7 +2860,7 @@ public class MyConfig implements WebMvcConfigurer {
 
 ### ***4、响应数据与内容协商***
 
-![image-20220810150001330](img\image-20220810150001330.png)
+![image-20220810150001330](.\img\image-20220810150001330.png)
 
 
 
@@ -2890,7 +2890,7 @@ public class MyConfig implements WebMvcConfigurer {
 
 即返回值Json数据的响应原理：*返回值解析器*，在进行参数解析前会把参数解析器`argumentResolvers`和返回值处理器`returnValueHandlers`配置好。
 
-![image-20220810152418967](img\image-20220810152418967.png)
+![image-20220810152418967](.\img\image-20220810152418967.png)
 
 > 说明可以和参数解析器argumentResolvers，类型转换器convert一样自己配置
 
@@ -2962,7 +2962,7 @@ handler.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
 >
 > 就是下面的Aceept：后面的
 >
-> ![image-20220810202601904](img\image-20220810202601904.png)
+> ![image-20220810202601904](.\img\image-20220810202601904.png)
 >
 > `其中q表示为权重，权重值约定表示优先级越高`，所有html，xhtml+xml，xml权重为0.9优先级最高
 >
@@ -3019,7 +3019,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 ***SpringMVC默认的消息转化器，及其支持的类型***
 
-![image-20220810211231880](img\image-20220810211231880.png)
+![image-20220810211231880](.\img\image-20220810211231880.png)
 
 ***消息转换器messageConverter作用：***看是否支持此class类型的对象，转化为MediaType类型的数据
 
@@ -3051,7 +3051,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 + 发送请求`http://localhost:8080/test/person`
 
-  ![image-20220816134729955](img\image-20220816134729955.png)
+  ![image-20220816134729955](.\img\image-20220816134729955.png)
 
 ##### 2.2、返回json
 
@@ -3252,7 +3252,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
   > 协商策略方法有很多，默认只加载请求头策略`HeaderContentNegotiationStrategy.class`
   >
-  > ![image-20220816153436862](img\image-20220816153436862.png)
+  > ![image-20220816153436862](.\img\image-20220816153436862.png)
 
 + 根据ioc容器中所有的messageConverter消息转换器看看，谁能够处理返回类型为Person的，并将其记录将Person处理后的类型
 
@@ -3284,7 +3284,7 @@ for (MediaType mediaType : mediaTypesToUse) {
   }
   ```
 
-  ![image-20220816145958881](img\image-20220816145958881.png)
+  ![image-20220816145958881](.\img\image-20220816145958881.png)
 
 + 客户端接收`application/xhtml+xml`格式，服务器最优匹配格式`application/xhtml+xml`，则接下来就是看看哪个消息转换器可以将`Person`类型，转化成`application/xhtml+xml`类型
 
@@ -3415,7 +3415,7 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 >
 > + 发送请求带对应的媒体类型MediaType就会被我们自己写的messageConverter解析【内容协商】
 >
->   ![image-20220817144724759](img\image-20220817144724759.png)
+>   ![image-20220817144724759](.\img\image-20220817144724759.png)
 
 ##### ==***2.6、自定义MessageConverter(浏览器请求参数方式format=xxxx)***==
 
@@ -3456,17 +3456,17 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 >
 >   > ***原理：***请求参数`format=xxx`解析策略`ParameterContentNegotiationStrategy.class`中，有个map集合用来报错支持媒体类型MediaType格式（默认只支持json），我们在配置类中手动加上自定义的媒体类型`application/x-any`，当我们浏览器发送这条请求时就会被接受处理，然后后面在进行最合适的返回类型匹配上用到（我们自己写的messageConverter专门用于处理application/x-any的消息处理器就会工作了）
 >   >
->   > ![image-20220817154512834](img\image-20220817154512834.png)
+>   > ![image-20220817154512834](.\img\image-20220817154512834.png)
 >
 > + 发送请求带对应的媒体类型MediaType就会被我们自己写的messageConverter解析【内容协商】
 >
->   ![image-20220817152648976](img\image-20220817152648976.png)
+>   ![image-20220817152648976](.\img\image-20220817152648976.png)
 
 ### ***5、视图解析与模板引擎***
 
 ***SpringBoot默认不支持jsp，参考：`0、SpringBoot下jsp和html混用并打包为jar包`***
 
-![image-20220822151743189](img\image-20220822151743189.png)
+![image-20220822151743189](.\img\image-20220822151743189.png)
 
 #### 5.1、模板引擎-Thymeleaf
 
@@ -3601,7 +3601,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
 ##### 6、属性优先级
 
-![image-20220819133220955](img\image-20220819133220955.png)
+![image-20220819133220955](.\img\image-20220819133220955.png)
 
 #### 5.2、thymeleaf的使用
 
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                             
+>   >                                
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -3946,7 +3946,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
  以`http://localhost:8080/basic_table`请求为例：
 
-![image-20220823162612996](img\image-20220823162612996.png)
+![image-20220823162612996](.\img\image-20220823162612996.png)
 
 + DIspatcherServlet接收请求，根据请求路径查找到对应的控制器方法handler
 
@@ -3955,7 +3955,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
   //不仅找到了对应的controller方法，而且找到了所有的拦截器 即HandlerExecutionChain
   ```
 
-  ![image-20220823154817139](img\image-20220823154817139.png)
+  ![image-20220823154817139](.\img\image-20220823154817139.png)
 
 + DispatcherServlet在执行handler方法前，循环**正序**调用所有拦截器的**pre**方法，如果有一个拦截器返回false，则直接返回（后面的都不执行了）
 
@@ -4033,7 +4033,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 > Accept:image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
 > ```
 >
-> ![image-20220823160756956](img\image-20220823160756956.png)
+> ![image-20220823160756956](.\img\image-20220823160756956.png)
 
 ### ***7、文件上传***
 
@@ -4065,7 +4065,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
 > ***注意：***form标签必须加上 enctype属性，否则传递的只是文件名
 >
-> ![image-20220824094157753](img\image-20220824094157753.png)
+> ![image-20220824094157753](.\img\image-20220824094157753.png)
 
 #### 2、控制器Controller方法
 
@@ -4207,7 +4207,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >             
+  >               
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -4219,13 +4219,13 @@ public class FileTool {
   >
   >   ![image-20220830161628821](\img\image-20220830161628821.png)
   >
-  >   ![image-20220830162043828](img\image-20220830162043828.png)
+  >   ![image-20220830162043828](.\img\image-20220830162043828.png)
   >
   >   
   >
   >   <font color='red'>注意：请求被接受是已经被tomcat处理保存了，看类名</font>
   >
-  >   ![image-20220830161404511](img\image-20220830161404511.png)
+  >   ![image-20220830161404511](.\img\image-20220830161404511.png)
 
 + 如果是文件流请求，则请求标志设置为`true`
 
@@ -4268,7 +4268,7 @@ public class FileTool {
   >
   > 2. 解析参数，返回 `StandardMultipartHttpServletRequest`类型
   >
-  >    ![image-20220830170830590](img\image-20220830170830590.png)
+  >    ![image-20220830170830590](.\img\image-20220830170830590.png)
 
 
 
@@ -4651,7 +4651,7 @@ public String basic_table(Model model) {
    >
    > b.判断DispatcherServlet中处理器异常解析器handlerExceptionResolvers是否存在，存在！***此处就是存放自定义异常解析器的位置，最后一定会返回一个ModelAndView***
    >
-   > ![image-20220831145843546](img\image-20220831145843546.png)
+   > ![image-20220831145843546](.\img\image-20220831145843546.png)
    >
    > c.遍历处理器异常解析器handlerExceptionResolvers，尝试解析异常
    >
@@ -4729,7 +4729,7 @@ public String basic_table(Model model) {
 
    **此步骤才是真正的发生/error请求并进行处理**
 
-   ![image-20220902112644118](img\image-20220902112644118.png)
+   ![image-20220902112644118](.\img\image-20220902112644118.png)
 
    ```java
    //StandardHostValve#throwable
@@ -4919,7 +4919,7 @@ public String basic_table(Model model) {
 
    <font color='red'>首先调用：`DefaultErrorAttributes`向request域中保存当前异常信息</font>
 
-   ![image-20220831145843546](img\image-20220831145843546.png)
+   ![image-20220831145843546](.\img\image-20220831145843546.png)
 
    <font color='yellow'>其次，这15种异常（见上面表格）会被`DefaultHandlerExceptionResolver`处理(本次不在内，返回null)</font>
 
@@ -5111,7 +5111,7 @@ public String basic_table(Model model) {
 
 借助Servlet3.0的底层原理，通过`ServletContextInitializer`的抽象类`RegistrationBean`的子类们实现：
 
-![image-20220902152419958](img\image-20220902152419958.png)
+![image-20220902152419958](.\img\image-20220902152419958.png)
 
 > 底层原理都是`ServletContextInitializer`的`onStartup`方法在servletContext初始化前添加，所以也可以自己实现此接口添加
 
@@ -5162,7 +5162,7 @@ public class MyRegisterBeanConfig {
 >
 > **自动配置类中通过`DispatcherServletRegistrationBean`其实就是`ServletRegistrationBean(ServletContextInitializer)`注册到tomcat容器中**
 
-![image-20220902160934685](img\image-20220902160934685.png)
+![image-20220902160934685](.\img\image-20220902160934685.png)
 
 > 类似web.xml中过滤器的先后为：在配置文件中的顺序
 >
@@ -5219,7 +5219,7 @@ public class MyRegisterBeanConfig {
 
 > 1. SpringBoot自动配置类**`ServletWebServerFactoryAutoConfiguration`**中引入了三种嵌入式服务器
 >
->    ​	![image-20220905145150110](img\image-20220905145150110.png)
+>    ​	![image-20220905145150110](.\img\image-20220905145150110.png)
 >
 > 2. 然后根据pom文件依赖中引入的场景starter，判断加载哪一个Web服务器（因为我们引入的是tomcat_starter，所以给容器注入tomcat服务器）
 >
@@ -5248,7 +5248,7 @@ public class MyRegisterBeanConfig {
 >
 >    
 
-#### 2、定制Servlet容器
+#### 2、定制Servlet容器(修改配置内容)
 
 ##### 1、通过修改spring的配置文件（推荐）
 
@@ -5293,6 +5293,7 @@ public ConfigurableServletWebServerFactory servletWebServerFactory(){
 作用就是将SpringBoot配置文件中的数据和ioc容器中组件属性绑定
 
 ```java
+@Component
 public class CustomizerWebServerFactoryAttributes implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
 
     @Override
@@ -5302,7 +5303,246 @@ public class CustomizerWebServerFactoryAttributes implements WebServerFactoryCus
 }
 ```
 
+
+
+### 12、定制化原理
+
+#### 1、SpringBoot定制化的常见方式
+
++ 修改SpringBoot的`Application*.yaml/yml/properties`配置文件<font color='red'>（推荐）</font>
+
++ **xxxxCustomizer** （需要修改什么，就用其对应的自定义器）
+
++ **编写自定义的配置类，xxxConfiguration**  + `@Bean`替换/增加容器的默认组件（视图解析器，返回值解析器，消息转换器等）
+
++ <font color='red'>**对于Web应用，需要配置类实现`WebMvcConfigurer`接口** （推荐定制web）</font>
+
++ <font color='yellow'>`@EnableWebMvc + WebMvcConfigurer接口 + @Bean`，即可全面接管SpringMVC，则所有的规则需要自己全部重新配置，实现定制和扩展功能。</font>
+
+  > 加了`@EnableWebMvc`则底层自动配置的一些功能就会失效，如：静态资源，视图解析器，欢迎页等都会失效。
+  >
+  > 就是因为自动配置类`WebMvcAutoConfiguration`中所有配置的都不生效了
+  >
+  > ***自动配置类`WebMvcAutoConfiguration`失效的原因***
+  >
+  > + 自动配置的条件是：ioc容器中没有`WebMvcConfigurationSupport`类型的组件
+  >
+  > + `@EnableWebMvc`的依赖类是：`DelegatingWebMvcConfiguration`，而`DelegatingWebMvcConfiguration`又是`WebMvcConfigurationSupport`的子类
+
++ ....
+
+  <img src=".\img\image-20220907100500130.png" alt="image-20220907100500130" style="zoom: 200%;" />
+
+  ```java
+  /** 【修改mvc比较底层的组件，不启用@EnableWebMvc而是使用WebMvcRegistrations】
+   * 自定义mvc底层的 处理器适配器
+   * @return WebMvcRegistrations
+   */
+  @Bean
+  public WebMvcRegistrations getWebMvcRegistrations() {
+      return new WebMvcRegistrations() {
+          @Override
+          public RequestMappingHandlerAdapter getRequestMappingHandlerAdapter() {
+              return WebMvcRegistrations.super.getRequestMappingHandlerAdapter();
+          }
+      };
+  }
+  
+  /**
+   * 启用@EnableWebMvc导致自动配置全都失效，所以需要自己配置资源处理器
+   *
+   * 意思为：当浏览器访问/aa下的所有请求时，会自动映射到类路径下 static目录下文件
+   * @param registry
+   *
+   * 即http://localhost:8080/aa/css/bootstrap.min.css 等同于
+   	http://localhost:8080/css/bootstrap.min.css（自动配置生效情况下）
+   */
+  @Override
+  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+      registry.addResourceHandler("/aa/**").addResourceLocations("classpath:/static/");
+  }
+  ```
+
+#### 2、定制化原理套路分析
+
+<font color='red'>场景starter</font> - xxxAutoConfiguration - 导入xxx组件 - 绑定xxxProperties类 - 绑定配置文件项
+
+***
+
 ## 2.3、数据访问
+
+### 1、SQL
+
+#### 1.1、数据源的自动配置 <font color='red'>HikariDataSource</font>
+
+##### ***a)导入JDBC场景启动器依赖：***
+
+```xml
+<!-- 引入数据源场景启动器-->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jdbc</artifactId>
+</dependency>
+```
+
+> `spring-boot-starter-data-jdbc`场景帮我们导入了：HikariCP数据库连接池，spring的jdbc等
+>
+> ![image-20220907112120697](.\img\image-20220907112120697.png)
+>
+> 会发现没有导入数据库驱动，这是因为官方布知道我们使用的是什么数据库，所以需要自己手动导入
+
+##### ***b)导入数据库驱动：***
+
+```xml
+<!-- 会自动进行版本仲裁，但是要注意mysql服务的版本一致，不要太高-->
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>5.1.47</version>
+</dependency>
+```
+
+##### ***c)配置数据源信息：***
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql:///ssm_crdu # 默认的数据源都是spring.datasource开头，所以数据库连接必须在这里配置
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    # 下面hikari失效的原因，自动配置绑定的前缀就是spring.datasource，而不是spring.datasource.hikari，除非自己使用配置类注入DataSource类可以用下面的前缀
+    hikari:
+      maximum-pool-size: 20 # 但是可以用来配置连接池的信息
+      connection-test-query: select 1
+#      jdbc-url: jdbc:mysql:///ssm_crdu
+#      username: root
+#      password: 123456
+#      driver-class-name: com.mysql.jdbc.Driver
+```
+
+
+
+##### ***d)测试使用：***
+
+```java
+@SpringBootTest
+class Boot05WebAdminApplicationTests {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Test
+    void contextLoads() {
+        String sql = "select * from tbl_emp";
+        List<Map<String, Object>> maps = jdbcTemplate.queryForList(sql);
+        maps.forEach(map -> System.out.println(map));//等同于maps.forEach(System.out::println);
+    }
+}
+```
+
+##### ***e)分析自动配置原理：***
+
+我们暂时用的自动配置类不是在`data/jdbc`这个目录下，而是在`jdbc`目录下
+
+**a.自动配置的类**
+
++ `DataSourceAutoConfiguration`：数据源自动配置
+
+  > 1、生效条件，容器中没有类型为`io.r2dbc.spi.ConnectionFactory`的组件（这个是基于响应式编程的）
+  >
+  > 2、可以在配置文件中修改数据源相关的配置，以"spring.datasource"开头
+  >
+  > 3、**数据库连接池，仅在自己没有配置（ioc容器中添加）才会自动配置：**
+  >
+  > ```java
+  > @Configuration(proxyBeanMethods = false)
+  > @Conditional(PooledDataSourceCondition.class)
+  > @ConditionalOnMissingBean({ DataSource.class, XADataSource.class })
+  > @Import({ 
+  >     DataSourceConfiguration.Hikari.class, //即默认的数据库连接池，导入spring-boot-starter-data-jdbc依赖时，里面默认指定的连接池
+  >     DataSourceConfiguration.Tomcat.class,
+  >     DataSourceConfiguration.Dbcp2.class, 
+  >     DataSourceConfiguration.OracleUcp.class,
+  >     DataSourceConfiguration.Generic.class, 
+  >     DataSourceJmxConfiguration.class })
+  > protected static class PooledDataSourceConfiguration {
+  > 
+  > }
+  > ```
+
++ `DataSourceTransactionManagerAutoConfiguration`：数据源事务管理的自动配置
+
++ `JdbcTemplateAutoConfiguration`：JDBC模板的自动配置
+
++ `JndiDataSourceAutoConfiguration`：依赖注入tomcat容器中数据源的自动配置
+
++ `XADataSourceAutoConfiguration`：分步式事务相关的自动注入
+
+#### 1.2、使用Druid数据源
+
+##### a)Druid官方github地址
+
+https://github.com/alibaba/druid
+
+整合第三方技术的两种方式：
+
++ 导入依赖后，配置类中自己定义
++ 找第三方的starter
+
+##### b)自己手动在配置类中引用
+
++ 引入Druid数据源依赖
+
+  ```xml
+  <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>druid</artifactId>
+      <version>${druid-version}</version> <!-- 需要指定版本-->
+  </dependency>
+  ```
+
++ 写一个配置类，引入Druid
+
++ 
+
++ 
+
+##### c)第三方官方Starter方式引入
+
+
+
+
+
+
+
+#### 1.3、整合MyBatis操作
+
+
+
+#### 1.4、整合MyBatis-Plus完成CRUD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

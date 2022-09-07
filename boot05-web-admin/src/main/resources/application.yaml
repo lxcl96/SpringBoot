@@ -11,6 +11,22 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 100MB
+  datasource: # 默认的数据源都是spring.datasource开头，所以数据库连接必须在这里配置
+#    url: jdbc:mysql:///ssm_crdu
+#    username: root
+#    password: 123456
+#    driver-class-name: com.mysql.jdbc.Driver
+#    type: com.zaxxer.hikari.HikariDataSource
+    # 下面hikari失效的原因，自动配置绑定的前缀就是spring.datasource，
+     # 而不是spring.datasource.hikari，除非自己使用配置类注入DataSource类可以用下面的前缀
+    hikari:
+      maximum-pool-size: 20  # 但是可以用来配置连接池的信息
+      connection-test-query: select 1
+#      jdbc-url: jdbc:mysql:///ssm_crdu
+#      username: root
+#      password: 123456
+#      driver-class-name: com.mysql.jdbc.Driver
+
 #server:
 #  jetty:
 #    accesslog:
@@ -23,3 +39,8 @@ spring:
 #  undertow:
 #    accesslog:
 #      enabled: true
+druid:
+  url: jdbc:mysql:///ssm_crdu
+  username: root
+  password: 123456
+  driverClassName: com.mysql.jdbc.Driver
