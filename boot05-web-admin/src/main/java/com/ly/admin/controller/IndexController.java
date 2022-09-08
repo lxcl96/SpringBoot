@@ -4,6 +4,8 @@ import com.ly.admin.bean.FileAttribute;
 import com.ly.admin.bean.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -17,6 +19,8 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * FileName:IndexController.class
@@ -27,7 +31,17 @@ import java.util.HashMap;
 @Controller
 public class IndexController {
     private final Logger log = LoggerFactory.getLogger(IndexController.class);
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
+
+    @ResponseBody
+    @GetMapping({"/sql"})
+    public Object sql() {
+        String sql = "select * from tbl_emp";
+
+        return jdbcTemplate.queryForList(sql);
+    }
 
 
     @GetMapping({"/","/login"})

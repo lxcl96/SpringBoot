@@ -5504,9 +5504,147 @@ https://github.com/alibaba/druid
 
 + 写一个配置类，引入Druid
 
-+ 
+  ```java
+  @Configuration
+  public class MyDataSource {
+  
+      /**
+       * 注解@ConfigurationProperties 的意思是，从配置文件中读取druid开头的所有属性，然后借助aop原理
+       *  当函数调用完返回一个Bean组件后，借助后置处理器再将值赋值给返回bean的属性
+       *  总之：被调用的方法返回之后，才会调用该注解给返回值赋值
+       *
+       *  DruidDataSource中System.getProperties() 中没有配置文件的属性
+       *  问题？区别？
+       * @return datasource
+       */
+      @Bean
+      @ConfigurationProperties(prefix = "druid")
+      public DruidDataSource dataSource() {
+          /**
+           * 配置数据库属性有很多方法：
+           *  1、@ConfigurationProperties + 配置文件
+           *  2、添加jvm参数方法
+           *  3、手动set方法
+           *  4、DruidDataSourceFactory.createDataSource(配置文件)
+           */
+          DruidDataSource dataSource = new DruidDataSource();
+          //开启sql监控
+          dataSource.setFilters("stat");
+  //        dataSource.setUrl();
+  //        dataSource.setDriverClassName();
+  //        dataSource.setUsername();
+  //        dataSource.setPassword();
+          return dataSource;
+      }
+  }
+  ```
 
-+ 
+  > <font color='red'>配置文件生效的原因</font>
+  >
+  > + `@ConfigurationProperties`注解生效是借助`ConfigurationPropertiesBindingPostProcessor`后置处理器（专门用于处理此注解的），在初始化bean之前即`postProcessBeforeInitialization`方法中（`initializeBean`，前面是`populateBean`赋值操作和`Object bean = instanceWrapper.getWrappedInstance();`创建ben）赋值的。
+  >
+  > + 而且配置文件中赋值都是借助ioc容器的environment属性保存配置文件中所有配置。
+  >
+  > + Druid源码中是**使用系统参数的方式，在创建bean时赋值**
+  >
+  >   ```java
+  >   //Druid底层赋值原理
+  >   configFromPropety(System.getProperties());
+  >   
+  >   /*
+  >   	所以可以通过jvm的启动参数来配置数据库连接池信息：
+  >   	-Ddruid.url=jdbc:mysql:///ssm_crdu -Ddruid.username=root -Ddruid.password=123456 -Ddruid.driverClassName=com.mysql.jdbc.Driver
+  >   */
+  >   ```
+
+  
+
+***
+
+***使用Druid的内置监控页面：***
+
+> Druid的监控统计功能是通过filter-chain扩展实现，如果你要打开监控统计功能，配置StatFilter，具体看这里：`https://github.com/alibaba/druid/wiki/配置_StatFilter`
+
+```java
+/**
+ * 打开Druid监控统计功能和内置监控页，并设置拦截路径和 用户名与密码
+ * 监控页面为：
+ *  http://ip:port/druid/index.html
+ *  http://ip:port/项目名/druid/index.html
+ * @return Druid servlet
+ */
+@Bean
+public ServletRegistrationBean<StatViewServlet> DruidStatView() {
+    HashMap<String, String> map = new HashMap<>();
+    map.put("loginUsername","ly");
+    map.put("loginPassword","ly");
+    ServletRegistrationBean<StatViewServlet> servletRegistrationBean = new ServletRegistrationBean<>(new StatViewServlet(), "/druid/*");
+    servletRegistrationBean.setInitParameters(map);
+
+    return servletRegistrationBean;
+}
+```
+
+![image-20220908151056746](.\img\image-20220908151056746.png)
+
+***
+
+***Druid监控Web应用：***
+
+> Web关联监控配置 : `https://github.com/alibaba/druid/wiki/配置_配置WebStatFilter`
+
+```java
+@Bean
+public FilterRegistrationBean<WebStatFilter> DruidWebStatFilter() {
+    HashMap<String, String> map = new HashMap<>();
+    map.put("exclusions","*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*");
+
+    FilterRegistrationBean<WebStatFilter> filterRegistrationBean = new FilterRegistrationBean<WebStatFilter>();
+    filterRegistrationBean.setFilter(new WebStatFilter());
+    filterRegistrationBean.addUrlPatterns("/*");
+    filterRegistrationBean.setInitParameters(map);
+
+    return filterRegistrationBean;
+}
+```
+
+![image-20220908153151374](.\img\image-20220908153151374.png)
+
+***
+
+***SQL防火墙：***
+
+> Druid提供了WallFilter，它是基于SQL语义分析来实现防御SQL注入攻击的。具体配置看这里：` https://github.com/alibaba/druid/wiki/配置-wallfilter`
+
+```java
+ @Bean
+    @ConfigurationProperties(prefix = "druid")
+    public DruidDataSource dataSource() throws SQLException {
+        DruidDataSource dataSource = new DruidDataSource();
+        //stat过滤器 开启sql监控
+        //wall过滤器 开启sql防火墙
+        dataSource.setFilters("stat,wall");
+        return dataSource;
+    }
+```
+
+![image-20220908154022104](.\img\image-20220908154022104.png)
+
+
+
+***
+
+***开启Spring监控***
+
+> Spring关联监控配置 : `https://github.com/alibaba/druid/wiki/配置_Druid和Spring关联监控配置`
+
+
+
+
+
+
+
+
 
 ##### c)第三方官方Starter方式引入
 
