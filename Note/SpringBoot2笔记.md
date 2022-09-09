@@ -5900,9 +5900,9 @@ https://github.com/mybatis/spring-boot-starter
 spring中引入mybatis框架的步骤：
 
 + 创建一个mybatis的全局配置文件（xml）
-+ 创建SqlSessionFactory
-+ 创建SqlSession
-+ 创建Mapper文件
++ 创建SqlSessionFactory   ---> `mybatis自动配置好了`
++ 创建SqlSession   ---> `自动配置了SqlSessionTemplate，内置sqlsession`
++ 创建Mapper文件   --->` 如果不指定，默认扫描主程序所在包下的所以标注@Mapper注解的接口`
 
 
 
@@ -5935,7 +5935,7 @@ public class MybatisAutoConfiguration implements InitializingBean {
   public SqlSessionTemplate sqlSessionTemplate(SqlSessionFactory sqlSessionFactory) {}
     
   @org.springframework.context.annotation.Configuration
-   //如果没有指定mapper扫描和mapper配置，则AutoConfiguredMapperScannerRegistrar类，就会扫描当前项目包下所有标注了@Mapper注解的接口，均h
+   //如果没有指定mapper扫描和mapper配置，则AutoConfiguredMapperScannerRegistrar类，就会扫描当前项目包下所有标注了@Mapper注解的接口，均会被扫描进来
   @Import(AutoConfiguredMapperScannerRegistrar.class)
   @ConditionalOnMissingBean({ MapperFactoryBean.class, MapperScannerConfigurer.class })
   public static class MapperScannerRegistrarNotFoundConfiguration implements InitializingBean {}
