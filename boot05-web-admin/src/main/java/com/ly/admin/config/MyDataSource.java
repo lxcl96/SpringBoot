@@ -4,6 +4,11 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.support.http.StatViewServlet;
 import com.alibaba.druid.support.http.WebStatFilter;
 import com.alibaba.druid.support.spring.stat.DruidStatInterceptor;
+import com.ly.admin.aop.DruidAndSpringBootAdvisor;
+import org.aopalliance.aop.Advice;
+//import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.aop.Advisor;
+import org.springframework.aop.aspectj.AspectJPointcutAdvisor;
 import org.springframework.aop.support.JdkRegexpMethodPointcut;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -12,7 +17,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Scope;
-import org.springframework.aop.Pointcut;
+import org.springframework.core.Ordered;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,7 +32,9 @@ import java.util.HashMap;
  * Date:2022/9/7 0007
  * Description:
  */
-@Configuration
+@Deprecated
+//@Configuration
+//@EnableAspectJAutoProxy(proxyTargetClass = true)
 public class MyDataSource {
 
     /**
@@ -105,7 +114,14 @@ public class MyDataSource {
         return regexpMethodPointcut;
     }
 
-
-    public void hh(){}
+    @Bean
+    public DruidAndSpringBootAdvisor druidAndSpringBootAdvisor(DruidStatInterceptor druidStatInterceptor,
+                                                               JdkRegexpMethodPointcut jdkRegexpMethodPointcut){
+        DruidAndSpringBootAdvisor bootAdvisor = new DruidAndSpringBootAdvisor();
+        bootAdvisor.setAdvice(druidStatInterceptor);
+        bootAdvisor.setPointcut(jdkRegexpMethodPointcut);
+        bootAdvisor.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return  bootAdvisor;
+    }
 
 }

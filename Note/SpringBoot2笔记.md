@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                                 
+>                                   
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                                     
+>                                       
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                                 
+>                                   
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                              
+>   	                                
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                                                 
+>                                                                     
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                                        
+>                                                                            
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                                             
+>                                                                                 
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                                
+>   >                                   
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -4207,7 +4207,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >               
+  >                 
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -5550,7 +5550,7 @@ https://github.com/alibaba/druid
   >   ```java
   >   //Druid底层赋值原理
   >   configFromPropety(System.getProperties());
-  >   
+  >     
   >   /*
   >   	所以可以通过jvm的启动参数来配置数据库连接池信息：
   >   	-Ddruid.url=jdbc:mysql:///ssm_crdu -Ddruid.username=root -Ddruid.password=123456 -Ddruid.driverClassName=com.mysql.jdbc.Driver
@@ -5638,23 +5638,325 @@ public FilterRegistrationBean<WebStatFilter> DruidWebStatFilter() {
 
 > Spring关联监控配置 : `https://github.com/alibaba/druid/wiki/配置_Druid和Spring关联监控配置`
 
++ 方式一 *xml形式*（这是Spring）
 
+  ```xml
+  <!-- 切面类 即Aspect-->
+  <bean id="druid-stat-interceptor">
+        <!-- 切面里的方法叫advice 通知/增强 -->
+        class="com.alibaba.druid.support.spring.stat.DruidStatInterceptor">
+  </bean>
+  
+  <!-- 切入点表达式的正则形式：即pointCut-->
+  <bean id="druid-stat-pointcut" class="org.springframework.aop.support.JdkRegexpMethodPointcut"
+  	scope="prototype">
+  	<property name="patterns">
+  		<list>
+  			<value>com.mycompany.service.*</value>
+  			<value>com.mycompany.dao.*</value>
+  		</list>
+  	</property>
+  </bean>
+  
+  <!-- 将切入点和切面搭配起来的配置 Advisor-->
+  <aop:config proxy-target-class="true">
+  	<aop:advisor advice-ref="druid-stat-interceptor"
+  		pointcut-ref="druid-stat-pointcut" />
+  </aop:config>
+  ```
 
++ <font color='red'>**方式二：注解方式（这是SpringBoot）**</font>
 
+  > 1. ***引入spring的aspectj依赖（最重要）**
+  >
+  >    ```xml
+  >    <!-- 引入aop相关的-->
+  >    <dependency>
+  >        <groupId>org.springframework</groupId>
+  >        <artifactId>spring-aspects</artifactId>
+  >    </dependency>
+  >    ```
+  >
+  > 2. 配置类上引入注解：`@EnableAspectJAutoProxy(proxyTargetClass = true)` 开启切面的自动代理
+  >
+  >    > springBoot中实测这一步可以省略
+  >
+  > 3. 自定义一个Advisor类，用于将切面和切入点表达式的关联起来
+  >
+  >    ```java
+  >    public class DruidAndSpringBootAdvisor implements PointcutAdvisor, Ordered {
+  >    
+  >        private  Advice advice;
+  >    
+  >        private  Pointcut pointcut;
+  >    
+  >        @Nullable
+  >        private Integer order;
+  >        //下面就是getter和setter方法
+  >    
+  >        @Override
+  >        public boolean isPerInstance() {
+  >            return true;
+  >        }
+  >    
+  >    }
+  >    
+  >    //或者在配置类中用此bean代替
+  >    @Bean
+  >    @ConditionalOnProperty(name = "spring.aop.auto",havingValue = "false")
+  >    public DefaultAdvisorAutoProxyCreator advisorAutoProxyCreator() {
+  >        DefaultAdvisorAutoProxyCreator advisorAutoProxyCreator = new DefaultAdvisorAutoProxyCreator();
+  >        advisorAutoProxyCreator.setProxyTargetClass(true);
+  >        return advisorAutoProxyCreator;
+  >    }
+  >    ```
+  >
+  > 4. 在配置类中创建**切面类**，**切入点表达式的正则类**，**Advisor配置类**
+  >
+  >    ```java
+  >    @Configuration
+  >    @EnableAspectJAutoProxy(proxyTargetClass = true)
+  >    public class MyDataSource {
+  >    	@Bean//切面类
+  >        public DruidStatInterceptor druidStatInterceptor() {
+  >            return new DruidStatInterceptor();
+  >        }
+  >
+  >        @Bean
+  >        @Scope("prototype")//切入点表达式正则类
+  >        public JdkRegexpMethodPointcut druidStatPointcut() {
+  >            JdkRegexpMethodPointcut regexpMethodPointcut = new JdkRegexpMethodPointcut();
+  >            regexpMethodPointcut.setPatterns("com.ly.admin.*");
+  >
+  >            return regexpMethodPointcut;
+  >        }
+  >
+  >        @Bean//Advisor配置类
+  >        public DruidAndSpringBootAdvisor druidAndSpringBootAdvisor(DruidStatInterceptor druidStatInterceptor,JdkRegexpMethodPointcut jdkRegexpMethodPointcut){
+  >            DruidAndSpringBootAdvisor bootAdvisor = new DruidAndSpringBootAdvisor();
+  >            bootAdvisor.setAdvice(druidStatInterceptor);//设置通知（切面类方法）
+  >            bootAdvisor.setPointcut(jdkRegexpMethodPointcut);//设置切入点表达式
+  >            bootAdvisor.setOrder(Ordered.HIGHEST_PRECEDENCE);//设置顺序
+  >            return  bootAdvisor;
+  >        }
+  >
+  >    }
+  >    ```
+  >
+  > 5. 运行测试
+  >
+  >    ![image-20220909102545055](.\img\image-20220909102545055.png)
 
+***Aspect、Advisor、Advice、Pointcut的关系***
 
+> 我要定义一个切面(Aspect)，但是切面是虚的，只是定义用来代表一到多个Advisor，那我要先定义一个Advisor，Advisor是表示 要做什么+在哪里做，那就定义Advice->做什么，定义Pointcut->在哪里做，也就是说：
+> Aspect 
+>     => n * Advisor 
+>     => n * ( Advice + Pointcut) == n * (@Before/@After/@Around + Pointcut) 
+> 完毕！
+>
+> [<font color='red'>详细参考：Advice_Pointcut_Aspect_JoinPoint_Advisor_ - SegmentFault 思否.pdf</font>](Advice_Pointcut_Aspect_JoinPoint_Advisor_ - SegmentFault 思否.pdf)
+>
+> ![aop术语关系](.\img\aop术语关系.png)
 
 
 
 ##### c)第三方官方Starter方式引入
 
++ 引入starter场景启动器（里面包含了druid，记得把上面的依赖注释掉）
+
++ 配置文件中开启配置
+
+  ```yaml
+  # Druid整合SpringBoot配置
+  spring:
+    datasource:
+      druid:
+        ############## filters表示开启哪个过滤器组件  下面的filter中都enable了#########################
+        #filters: stat,wall,slf4j,
+        # 数据源配置，如果去掉druid这级别，也是正确的
+        url: jdbc:mysql:///ssm_crdu
+        driver-class-name: com.mysql.jdbc.Driver
+        username: root
+        password: 123456
+        ############## filter表示，每个filter的单独配置信息（可以配置了但是没有开启，只有enable属性才表示开启）#########################
+        filter:
+          # 开启sql监控统计功能 【默认开启】
+          stat:
+            enabled: true
+            db-type: mysql
+            log-slow-sql: true
+            slow-sql-millis: 1000
+          # sql防火墙
+          wall:
+            db-type: mysql
+            enabled: true
+  
+          # 配置日志
+          slf4j:
+            enabled: true
+  
+        # 开启Druid的内置监控页面
+        stat-view-servlet:
+          enabled: true
+          login-username: ly
+          login-password: ly
+          url-pattern: /druid/* #servlet的路径
+          reset-enable: false # 禁用监控页面的重置按钮
+        # 内置监控与web关联
+        web-stat-filter:
+          enabled: true
+          exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*" # 排除监控路径
+          url-pattern: /* # 监控请求地址，过滤所有地址
+  
+        # 内置监控与Spring关联
+        aop-patterns: com.ly.admin.*   # 监控spring中bean组件命令 【此处为切入点表达式】
+  
+    aop:
+    #[必须关闭@ConditionalOnProperty(name = "spring.aop.auto",havingValue = "false")才会生效]
+      auto: false # 不开启aop自动代理 【要不然就是导入spring-aop依赖，去掉aop的配置】
+  ```
+
++ 开启测试
 
 
 
+**DruidDataSourceAutoConfigure源码分析：**
 
-
+> ```java
+> @Configuration
+> @ConditionalOnClass(DruidDataSource.class)
+> //必须在Spring官方的DataSourceAutoConfiguration配之前生效，否则spring会自动注入Hikari连接池，就无法创建Druid
+> @AutoConfigureBefore(DataSourceAutoConfiguration.class)
+> 							//绑定配置文件中spring.datasource.druid"开头的
+> @EnableConfigurationProperties({DruidStatProperties.class, 
+>                                 //绑定配置文件中spring.datasource"开头的
+>                                 DataSourceProperties.class})
+> 
+> 	//实现监控Spring中组件信息的，与spring.datasource.druid.aop-patterns的属性绑定
+> @Import({DruidSpringAopConfiguration.class,
+>     //开启Druid的内置监控页，与spring.datasource.druid.stat-view-servlet的属性绑定（默认开启）
+>     DruidStatViewServletConfiguration.class,
+>     //开启web监控统计功能，与spring.datasource.druid.web-stat-filter的属性绑定（默认开启）
+>     DruidWebStatFilterConfiguration.class,
+>     /*所有过滤器配置包括：
+>     FILTER_STAT_PREFIX = "spring.datasource.druid.filter.stat";【sql监控统计】
+>     FILTER_CONFIG_PREFIX = "spring.datasource.druid.filter.config";
+>     FILTER_ENCODING_PREFIX = "spring.datasource.druid.filter.encoding";
+>     FILTER_SLF4J_PREFIX = "spring.datasource.druid.filter.slf4j";
+>     FILTER_LOG4J_PREFIX = "spring.datasource.druid.filter.log4j";
+>     FILTER_LOG4J2_PREFIX = "spring.datasource.druid.filter.log4j2";
+>     FILTER_COMMONS_LOG_PREFIX = "spring.datasource.druid.filter.commons-log";
+>     FILTER_WALL_PREFIX = "spring.datasource.druid.filter.wall";【防火墙】
+>     FILTER_WALL_CONFIG_PREFIX = FILTER_WALL_PREFIX + ".config";
+>     */
+>     DruidFilterConfiguration.class})
+> public class DruidDataSourceAutoConfigure {
+>     private static final Logger LOGGER = LoggerFactory.getLogger(DruidDataSourceAutoConfigure.class);
+> 
+>     @Bean(initMethod = "init")
+>     @ConditionalOnMissingBean
+>     public DataSource dataSource() {
+>         LOGGER.info("Init DruidDataSource");
+>         return new DruidDataSourceWrapper();
+>     }
+> }
+> ```
 
 #### 1.3、整合MyBatis操作
+
+##### a)官方地址
+
+https://github.com/mybatis/spring-boot-starter
+
+引入第三方官方场景启动器starter：
+
+```xml
+<!-- 引入mybatis框架-->
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>2.2.2</version>
+</dependency>
+```
+
+每次导入依赖都要先看看他干了什么事情：
+
+![image-20220909155552403](.\img\image-20220909155552403.png)
+
+> 每一个autoConfiguration在`META-INF`目录下都有一个`spring.factories`配置文件，里面存放着当前包下需要启用的自动配置类：
+>
+> ```properties
+> # Auto Configure [以mybatis为例]
+> org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+> org.mybatis.spring.boot.autoconfigure.MybatisLanguageDriverAutoConfiguration,\
+> org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+> ```
+>
+> 意思：Springboot启动时会扫描每一个自动配置包下的`META-INF/spring.factories`文件，并根据文件内容自动加载配置类。
+
+##### b)经典配置模式
+
+spring中引入mybatis框架的步骤：
+
++ 创建一个mybatis的全局配置文件（xml）
++ 创建SqlSessionFactory
++ 创建SqlSession
++ 创建Mapper文件
+
+
+
+##### c) 配置文件注解模式
+
+
+
+##### d)混合模式
+
+
+
+##### e)自动配置原理
+
+```java
+@org.springframework.context.annotation.Configuration
+@ConditionalOnClass({ SqlSessionFactory.class, SqlSessionFactoryBean.class })
+@ConditionalOnSingleCandidate(DataSource.class)
+@EnableConfigurationProperties(MybatisProperties.class)
+@AutoConfigureAfter({ DataSourceAutoConfiguration.class, MybatisLanguageDriverAutoConfiguration.class })
+public class MybatisAutoConfiguration implements InitializingBean {
+    
+  @Bean
+  @ConditionalOnMissingBean
+    //1、给容器中导入了SqlSessionFactory
+  public SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {}
+  
+  @Bean
+  @ConditionalOnMissingBean
+    //2、给容器中导入了SqlSessionTemplate，整合了sqlsession
+  public SqlSessionTemplate sqlSessionTemplate(SqlSessionFactory sqlSessionFactory) {}
+    
+  @org.springframework.context.annotation.Configuration
+   //如果没有指定mapper扫描和mapper配置，则AutoConfiguredMapperScannerRegistrar类，就会扫描当前项目包下所有标注了@Mapper注解的接口，均h
+  @Import(AutoConfiguredMapperScannerRegistrar.class)
+  @ConditionalOnMissingBean({ MapperFactoryBean.class, MapperScannerConfigurer.class })
+  public static class MapperScannerRegistrarNotFoundConfiguration implements InitializingBean {}
+    
+    
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

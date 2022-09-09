@@ -1,0 +1,47 @@
+# Druid整合SpringBoot配置
+spring:
+  datasource:
+    druid:
+      ############## filters表示开启哪个过滤器组件  下面的filter中都enable了#########################
+      #filters: stat,wall,slf4j,
+      # 数据源配置，如果去掉druid这级别，也是正确的
+      url: jdbc:mysql:///ssm_crdu
+      driver-class-name: com.mysql.jdbc.Driver
+      username: root
+      password: 123456
+      ############## filter表示，每个filter的单独配置信息（可以配置了但是没有开启，只有enable属性才表示开启）#########################
+      filter:
+        # 开启sql监控统计功能 【默认开启】
+        stat:
+          enabled: true
+          db-type: mysql
+          log-slow-sql: true
+          slow-sql-millis: 1000
+        # sql防火墙
+        wall:
+          db-type: mysql
+          enabled: true
+
+        # 配置日志
+        slf4j:
+          enabled: true
+
+      # 开启Druid的内置监控页面
+      stat-view-servlet:
+        enabled: true
+        login-username: ly
+        login-password: ly
+        url-pattern: /druid/* #servlet的路径
+        reset-enable: false # 禁用监控页面的重置按钮
+      # 内置监控与web关联
+      web-stat-filter:
+        enabled: true
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*" # 排除监控路径
+        url-pattern: /* # 监控请求地址，过滤所有地址
+
+      # 内置监控与Spring关联
+      aop-patterns: com.ly.admin.*   # 监控spring中bean组件命令 【此处为切入点表达式】
+
+  aop:
+    auto: false # 不开启aop自动代理
+
