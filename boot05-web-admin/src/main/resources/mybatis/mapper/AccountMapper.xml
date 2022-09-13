@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 一个mapper接口，一个xml文件【一一对应】-->
+<mapper namespace="com.ly.admin.mapperInterface.AccountMapper">
+
+
+    <!--    public Account getAccountById(Long id);-->
+    <!-- 如果没有指定返回类型的目录，则必须写全类名-->
+    <select id="getAccountById" resultType="com.ly.admin.bean.Account">
+        select id,user_id,money from account_tbl where id=#{id};
+    </select>
+</mapper>

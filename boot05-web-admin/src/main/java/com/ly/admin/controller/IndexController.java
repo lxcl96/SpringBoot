@@ -1,7 +1,13 @@
 package com.ly.admin.controller;
 
+import com.ly.admin.bean.Account;
+import com.ly.admin.bean.City;
 import com.ly.admin.bean.FileAttribute;
 import com.ly.admin.bean.User;
+import com.ly.admin.mapperInterface.AccountMapper;
+import com.ly.admin.service.AccountService;
+import com.ly.admin.service.CityService;
+import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -33,8 +36,33 @@ public class IndexController {
     private final Logger log = LoggerFactory.getLogger(IndexController.class);
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private SqlSession sqlSession;
+    @Autowired
+    private AccountService accountService;
+    @Autowired
+    private CityService cityService;
 
+    @ResponseBody
+    @GetMapping({"/acc"})
+    public Account getAccountById(@RequestParam("id") Long id) {
+        log.info("id=" + id);
+        return accountService.getAccountById(id);
+    }
 
+    @ResponseBody
+    @GetMapping({"/city"})
+    public City getCityById(@RequestParam("id") Long id) {
+        log.info("id=" + id);
+        return cityService.getCityById(id);
+    }
+
+    @ResponseBody
+    @PostMapping({"/city"})
+    public City saveCity(City city) {
+        cityService.insertOne(city);
+        return city;
+    }
     @ResponseBody
     @GetMapping({"/sql"})
     public Object sql() {

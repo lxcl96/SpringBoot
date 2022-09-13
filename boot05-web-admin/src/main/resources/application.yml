@@ -50,15 +50,20 @@ spring:
 
 
 # 配置Mybatis
-#mybatis:
-#  config-location:   # xml的sql
-#  mapper-locations:  # mapper接口的位置，不指定全包扫描
-#  type-aliases-package:   # 包的别名
-#  check-config-location:  # xml的sql配置文件是否存在检查
-#  executor-type:   # 操作的类型
-#  default-scripting-language-driver:  # 默认脚本语言驱动
-#  configuration-properties:   # mybatis的全局配置文件
-#  configuration:     #mybatis的自动配置类，如果指定了则属性单独设置就不生效了
-#    aggressive-lazy-loading: false
+mybatis:
+  # 指定mybatis全局配置文件
+#  config-location: classpath:mybatis/mybatis-config.xml
+  # 指定mapper接口对应的xml文件
+  mapper-locations: classpath:mybatis/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true # 开启驼峰转化
 
-
+# 开启指定包日志等级【便于查看sql】
+# 格式为：log.level.目标类的全类名=等级
+# properties对于的格式：logging.level.com.ly.admin.mapperInterface=debug
+logging:
+  level:
+    com:
+      ly:
+        admin:
+          mapperInterface: debug

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 一个mapper接口，一个xml文件【一一对应】-->
+<mapper namespace="com.ly.admin.mapperInterface.CityMapper">
+
+
+    <!--public int insert(City city);  注：实体类bean也是map其实
+    useGeneratedKeys使用数据库自增主键，并将主键返回给city中的id属性
+    keyProperty：用来接收返回的主键
+    -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into city values(null,#{name},#{state},#{country});
+    </insert>
+</mapper>

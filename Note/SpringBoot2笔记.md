@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                                   
+>                                     
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                                       
+>                                         
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                                   
+>                                     
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                                
+>   	                                  
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                                                     
+>                                                                         
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                                            
+>                                                                                
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                                                 
+>                                                                                     
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                                   
+>   >                                      
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -4207,7 +4207,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >                 
+  >                   
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -5550,7 +5550,7 @@ https://github.com/alibaba/druid
   >   ```java
   >   //Druid底层赋值原理
   >   configFromPropety(System.getProperties());
-  >     
+  >       
   >   /*
   >   	所以可以通过jvm的启动参数来配置数据库连接池信息：
   >   	-Ddruid.url=jdbc:mysql:///ssm_crdu -Ddruid.username=root -Ddruid.password=123456 -Ddruid.driverClassName=com.mysql.jdbc.Driver
@@ -5902,17 +5902,226 @@ spring中引入mybatis框架的步骤：
 + 创建一个mybatis的全局配置文件（xml）
 + 创建SqlSessionFactory   ---> `mybatis自动配置好了`
 + 创建SqlSession   ---> `自动配置了SqlSessionTemplate，内置sqlsession`
-+ 创建Mapper文件   --->` 如果不指定，默认扫描主程序所在包下的所以标注@Mapper注解的接口`
++ <font color='red'>代码中Mapper代理类   --->` 如果不指定，默认扫描主程序所在包下的所有标注@Mapper注解的接口，并添加到ioc容器中，可直接调用。`</font>
+
+***SpringBoot中配置模式使用mybatis：***
+
++ 建立一张表，结构如下：
+
+  > ```sql
+  > DROP TABLE IF EXISTS `account_tbl`;
+  > CREATE TABLE `account_tbl` (
+  >   `id` int(11) DEFAULT NULL,
+  >   `user_id` varchar(255) DEFAULT NULL,
+  >   `money` int(11) DEFAULT NULL
+  > ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  > ```
+
++ 创建与该表对应的实体bean类
+
+  ```java
+  @Data
+  @ToString
+  public class Account {
+      private Long id;
+      private String userId;
+      private Integer money;
+  }
+  ```
+
++ 创建mapper接口
+
+  ```java
+  @Mapper//标注了@mapper注解，则该接口会被mybaits自动扫描并加入到ioc容器中（代理类）
+  public interface AccountMapper {
+  
+      /**
+       * 根据账户id，获取账户信息
+       * @param id id
+       * @return 账户类
+       */
+      public Account getAccountById(Long id);
+  }
+  ```
+
++ 编写mapper接口对应的xml文件
+
+  > ```xml
+  > <?xml version="1.0" encoding="UTF-8" ?>
+  > <!DOCTYPE mapper
+  >         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  >         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  > <!-- 一个mapper接口，一个xml文件【一一对应】-->
+  > <mapper namespace="com.ly.admin.mapperInterface.AccountMapper">
+  > 
+  > 
+  > <!--    public Account getAccountById(Long id);-->
+  >     <!-- 如果没有指定返回类型的目录，则必须写全类名-->
+  >     <select id="getAccountById" resultType="com.ly.admin.bean.Account">
+  >         select id,user_id,money from account_tbl where id=#{id};
+  >     </select>
+  > </mapper>
+  > ```
+
++ 编写mybatis的全局配置文件（如：开启驼峰命名转换）<font color='red'>可以不写mybatis的全局配置文件因为其所以配置内容都在yaml配置文件中的`mybatis.configuration中`</font>
+
+  > ```xml
+  > <?xml version="1.0" encoding="UTF-8" ?>
+  > <!DOCTYPE configuration
+  >         PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  >         "http://mybatis.org/dtd/mybatis-3-config.dtd">
+  > <configuration>
+  >     <!-- 所有的配置，全部自动配置好了,当然也可以在此设置-->
+  >     <settings>
+  >         <setting name="mapUnderscoreToCamelCase" value="true"/>
+  >     </settings>
+  > 
+  > 
+  > </configuration>
+  > ```
+
++ springboot配置文件中，指定mybatis的属性<font color='red'>mybatis全局配置文件中能配置的，springboot配置文件中也全部可以配置</font>
+
+  > ```yaml
+  > # 配置Mybatis
+  > mybatis:
+  >   # 指定mybatis全局配置文件【不能与configuration同时存在】
+  >   # config-location: classpath:mybatis/mybatis-config.xml
+  >   # 指定mapper接口对应的xml文件
+  >   mapper-locations: classpath:mybatis/mapper/*.xml
+  >   configuration:
+  >     map-underscore-to-camel-case: true # 开启驼峰转化
+  > 
+  > # 开启指定包日志等级【便于查看sql】
+  > # 格式为：log.level.目标类的全类名=等级
+  > # properties对于的格式：logging.level.com.ly.admin.mapperInterface=debug
+  > logging:
+  >   level:
+  >     com:
+  >       ly:
+  >         admin:
+  >           mapperInterface: debug
+  > ```
+
++ service层调用
+
+  > ```java
+  > @Service
+  > public class AccountService {
+  > 
+  >     @Autowired //只要AccountMapper 有@Mapper注解，且在主程序所在的包下则会被自动扫描添加到容器中
+  > //    private SqlSession sqlSession;
+  >     private AccountMapper accountMapper;
+  > 
+  > 
+  >     public Account getAccountById( Long id) {
+  > //        AccountMapper accountMapper = sqlSession.getMapper(AccountMapper.class);
+  >         return accountMapper.getAccountById(id);
+  >     }
+  > }
+  > ```
+
++ 运行测试
+
+  > ![image-20220913153345983](.\img\image-20220913153345983.png)
 
 
+
+***
 
 ##### c) 配置文件注解模式
 
++ 引入第三方插件的官方starter场景启动器（或者idea中的Spring Initializer初始化向导中选择mybatis framework）
 
++ 创建测试表
+
+  > ```sql
+  > CREATE TABLE city
+  > (
+  >   id      INT(11) PRIMARY KEY auto_increment,
+  >   name    VARCHAR(30),
+  >   state   VARCHAR(30),
+  >   country VARCHAR(30)
+  > );
+  > ```
+
++ 创建表对于的实体化bean
+
+  > ```java
+  > @Data
+  > public class City {
+  >     private Long id;
+  >     private String name;
+  >     private String state;
+  >     private String country;
+  > }
+  > ```
+
++ 创建一个mapper接口，用于操作数据库
+
+  > ```java
+  > @Mapper
+  > public interface CityMapper {
+  > 
+  >     @Select("select * from city where id=#{id};")//里面的sql和xml的完全一致
+  >     public City getCItyById(Long id);
+  > }
+  > ```
+
++ service层调用
+
+  > ```java
+  > @Service
+  > public class CityService {
+  >     @Autowired
+  >     private CityMapper cityMapper;
+  >     
+  >     public City getCityById(Long id) {
+  >         return cityMapper.getCItyById(id);
+  >     }
+  > }
+  > ```
+
++ 运行测试
+
+  > ![image-20220913160723505](.\img\image-20220913160723505.png)
+
+***
 
 ##### d)混合模式
 
+就是上面**配置模式**和**注解方式**搭配使用
 
++ ...
+
++ 创建一个mapper接口，用于操作数据库
+
+  > ```java
+  > 	xxxxxxxxxx910910 1@Mapper2public interface CityMapper {34    @Select("select * from city where id=#{id};")5    public City getCItyById(Long id); //使用注解sql67    //@Insert("insert into city values(null,#{name},#{state},#{country});")8    //@Options(useGeneratedKeys = true, keyColumn = "id")9    public int insert(City city); //使用mapper接口的xml文件sql10}java
+  > ```
+
++ 创建mapper接口对应的xml文件进行sql查询
+
+  > ```xml
+  > <?xml version="1.0" encoding="UTF-8" ?>
+  > <!DOCTYPE mapper
+  >         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  >         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  > <!-- 一个mapper接口，一个xml文件【一一对应】-->
+  > <mapper namespace="com.ly.admin.mapperInterface.CityMapper">
+  > 
+  > 
+  >     <!--public int insert(City city);  注：实体类bean也是map其实
+  >     useGeneratedKeys使用数据库自增主键，并将主键返回给city中的id属性
+  >     keyProperty：用来接收返回的主键
+  >     -->
+  >     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+  >         insert into city values(null,#{name},#{state},#{country});
+  >     </insert>
+  > </mapper>
+  > ```
+
++ ...
 
 ##### e)自动配置原理
 
@@ -5920,7 +6129,7 @@ spring中引入mybatis框架的步骤：
 @org.springframework.context.annotation.Configuration
 @ConditionalOnClass({ SqlSessionFactory.class, SqlSessionFactoryBean.class })
 @ConditionalOnSingleCandidate(DataSource.class)
-@EnableConfigurationProperties(MybatisProperties.class)
+@EnableConfigurationProperties(MybatisProperties.class)//绑定的配置文件，以“mybatis”开头
 @AutoConfigureAfter({ DataSourceAutoConfiguration.class, MybatisLanguageDriverAutoConfiguration.class })
 public class MybatisAutoConfiguration implements InitializingBean {
     
@@ -5935,7 +6144,7 @@ public class MybatisAutoConfiguration implements InitializingBean {
   public SqlSessionTemplate sqlSessionTemplate(SqlSessionFactory sqlSessionFactory) {}
     
   @org.springframework.context.annotation.Configuration
-   //如果没有指定mapper扫描和mapper配置，则AutoConfiguredMapperScannerRegistrar类，就会扫描当前项目包下所有标注了@Mapper注解的接口，均会被扫描进来
+   //AutoConfiguredMapperScannerRegistrar类会扫描当前项目包下所有标注了@Mapper注解的接口，均会被扫描添加到ioc容器中
   @Import(AutoConfiguredMapperScannerRegistrar.class)
   @ConditionalOnMissingBean({ MapperFactoryBean.class, MapperScannerConfigurer.class })
   public static class MapperScannerRegistrarNotFoundConfiguration implements InitializingBean {}
@@ -5946,17 +6155,14 @@ public class MybatisAutoConfiguration implements InitializingBean {
 
 
 
+***总结：***
 
-
-
-
-
-
-
-
-
-
-
+- 引入mybatis-starter
+- **配置application.yaml中，指定mapper-location位置即可**
+- 编写Mapper接口并标注@Mapper注解
+- 简单方法直接注解方式
+- 复杂方法编写mapper.xml进行绑定映射
+- *@MapperScan("com.ly.admin.mapper") 简化，该报下的接口就可以不用标注@Mapper注解*
 
 
 
