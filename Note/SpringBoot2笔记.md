@@ -6168,6 +6168,200 @@ public class MybatisAutoConfiguration implements InitializingBean {
 
 #### 1.4、整合MyBatis-Plus完成CRUD
 
+##### 1、什么是MyBatis-Plus
+
+MyBatis-Plus（简称MP）是一个MyBatis的增强工具。在MyBatis的基础上只做增强不做改变，为简化开发、提高效率而生。
+
+mybatis-plus官网：https://baomidou.com/
+
+**IDEA 建议安装MybatisX插件**
+
+> 功能：
+>
+> 1. 直接从mapper接口跳转到xml文件
+> 2. 连接数据库，逆向生成代码
+> 3. 代码提示等等
+
+
+
+##### 2、整合MyBatis-Plus
+
+1. 创建user表，并导入一些测试数据
+
+2. 引入mybatis-plus场景启动器
+
+   > ```xml
+   > <!-- 因为mybatis-plus-boot-starter中包含了mybatis依赖jdbc依赖，所以不需要导入
+   >         mybatis-spring-boot-starter
+   >         spring-boot-starter-jdbc
+   > 	依赖了
+   > -->
+   > 
+   > <dependency>
+   >     <groupId>com.baomidou</groupId>
+   >     <artifactId>mybatis-plus-boot-starter</artifactId>
+   >     <version>3.5.2</version>
+   > </dependency>
+   > ```
+
+3. 配置数据源（自动配置SqlSessionFactory组件时自动注入了druid数据源）
+
+   ```java
+   //所以数据源的配置还是在Druid那一块
+   MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
+   factory.setDataSource(dataSource);
+   ```
+
+4. 主程序上标注`@MapperScan`注解，（不标注默认是springboot的扫描包范围，扫描标注`@Mapper`注解的）
+
+   ```java
+   @MapperScan(basePackages = "com.ly.admin.mapperInterface")
+   @SpringBootApplication
+   public class Boot05WebAdminApplication {}
+   ```
+
+5. 创建user表对应的bean类
+
+   ```java
+   @Data
+   @ToString
+   @TableName("user") //不写默认就是类名小写
+   public class User {
+       //问题：该实体bean的所有属性必须要在数据库中有对应字段否则就会报错
+       @TableField(exist = false)//加了此注解，表示该字段不存在也可以
+       private String userName;
+       @TableField(exist = false)
+       private String password;
+   
+       //以下是数据库字段
+       private Long id;
+       private String name;
+       private Integer age;
+       private String email;
+   }
+   ```
+
+6. 开始测试
+
+   ```java
+   @Slf4j
+   @SpringBootTest
+   class Boot05WebAdminApplicationTests {
+       @Autowired
+       private UserMapper userMapper;
+   
+   
+       @Test
+       void testUserMapper() {
+           User user = this.userMapper.selectById(1L);
+           System.out.println(user);
+       }
+   
+   }
+   ```
+
+![image-20220914115237911](.\img\image-20220914115237911.png)
+
+##### 3、CRUD功能
+
+> + 创建UserMapper接口，指定要操作的类型
+>
+>   ```java
+>   /*
+>       继承mybatis-plus提供的基类mapper，简化
+>       Mapper 继承该接口后，无需编写 mapper.xml 文件，即可获得CRUD功能
+>       User类默认对应user表，当然也可以通过@TableName指定表名
+>   */
+>   public interface UserMapper extends BaseMapper<User> {
+>   	//父接口内部定义了很多常用crud方法，所以自己不需要写
+>   }
+>   ```
+>
+> + 定义UserService接口，用于调用dao层
+>
+>   ```java
+>   //IService<User>与上面的BaseMapper<User>对应，定义了一些常用的crud方法
+>   public interface UserService extends IService<User> {
+>   
+>   }
+>   ```
+>
+> + 创建UserService实现类，用于实际调用
+>
+>   ```java
+>   /**
+>    * ServiceImpl直接实现IService，减少方法重复实现
+>    *          只需要指定两个泛型，ServiceImpl<要操作的mapper接口,该mapper接口对应得实体bean>
+>    */
+>   @Service
+>   public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+>       //因为UserServiceImpl实现了UserService，而UserService中有很多预定义的常用crud抽象方法，直接继承需要实现很多方法，所以mybatis又提供了IService<User>的相应继承类ServiceImpl
+>   }
+>   ```
+>
+> + 配置类中给ioc容器添加分页拦截器插件 （类似于mybatis的pageHelper）
+>
+>   ```java
+>   @Configuration
+>   public class MyBatisConfig {
+>       
+>       /**
+>        * 配置类中给ioc容器添加分页拦截器插件 （类似于mybatis的pageHelper）
+>        * @return 分页拦截器
+>        */
+>       @Bean
+>       public MybatisPlusInterceptor paginationInterceptor() {
+>           MybatisPlusInterceptor mybatisPlusInterceptor = new MybatisPlusInterceptor();
+>           PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor();
+>           //请求超过实际页数，true返回首页，false继续请求
+>           paginationInnerInterceptor.setOverflow(true);
+>           //设置最大单页限制数量，默认500条， -1不限制
+>           paginationInnerInterceptor.setMaxLimit(200L);
+>           mybatisPlusInterceptor.addInnerInterceptor(paginationInnerInterceptor);
+>           
+>           //等等 分页的详细设置
+>           return mybatisPlusInterceptor;
+>       }
+>   }
+>   ```
+>
+> + 使用分页
+>
+>   ```java
+>   @GetMapping({"/dynamic_table"})//查询
+>   public String dynamic_table(@RequestParam(name = "pn",defaultValue = "1") Long pn, Model model) {
+>   
+>       /**
+>        *  分页查询
+>        *      参数1为：page分页
+>        *      参数2为：wrapper查询条件
+>        */
+>       Page<User> page = userService.page(new Page<>(pn, 2L), null);
+>   
+>       page.hasPrevious();
+>       page.hasNext();
+>   
+>   
+>       log.info("uri = dynamic_table\n");
+>   
+>       model.addAttribute("nowUri","dynamic_table");
+>       model.addAttribute("page",page);
+>       return "table/dynamic_table";
+>   }
+>   ```
+>
+>   ```java
+>   @GetMapping({"/user/delete/{id}"})//sa'h
+>   public String dropUser(@PathVariable(name = "id") Long id,
+>                          @RequestParam(name = "pn",defaultValue = "1") Long pn,
+>                          RedirectAttributes ra) {
+>       userService.removeById(id);
+>       //RedirectAttributes 重定向携带参数
+>       ra.addAttribute("pn",pn);
+>   
+>       return "redirect:/dynamic_table";
+>   }
+>   ```
 
 
 
@@ -6177,10 +6371,38 @@ public class MybatisAutoConfiguration implements InitializingBean {
 
 
 
+##### 4、mybatis-plus自动配置原理
+
+自动配置类 ：MybatisPlusAutoConfiguration
+
+配置类绑定配置文件：MybatisPlusProperties 
+
+> 以“mybatis-plus”开头
+
+**自动配置组件：**
+
++ SqlSessionFactory 自动添加到ioc容器中，使用的是底层自己配置的druid数据源
+
+  > 配置文件yaml中的属性：mapperLocations默认值
+  >
+  > ```java
+  > /*
+  > 	mapper接口对应的xml文件，任意包的类路径下mapper目录下 的 
+  > 	   即 ：任意包-类路径  /mapper/多级目录/*.xml   【建议使用推荐位置】
+  > */
+  > private String[] mapperLocations = new String[]{"classpath*:/mapper/**/*.xml"};
+  > ```
+
++ SqlSessionTemplate 动添加到ioc容器中，包含属性SqlSession
+
++ 导入AutoConfiguredMapperScannerRegistrar类，自动扫描主程序所在包下的所有标注了`@Mapper`注解的
 
 
 
+##### 5、mybatis-plus优点
 
++ 只要我们的mapper接口继承了 `BaseMapper<T>`基类接口，就获得了基本的crud能力
++ 
 
 
 

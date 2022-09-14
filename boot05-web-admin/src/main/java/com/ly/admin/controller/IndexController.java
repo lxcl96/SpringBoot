@@ -36,8 +36,8 @@ public class IndexController {
     private final Logger log = LoggerFactory.getLogger(IndexController.class);
     @Autowired
     private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private SqlSession sqlSession;
+//    @Autowired
+//    private SqlSession sqlSession;
     @Autowired
     private AccountService accountService;
     @Autowired

@@ -18,7 +18,7 @@ public interface CityMapper {
     @Select("select * from city where id=#{id};")
     public City getCItyById(Long id);
 
-    @Insert("insert into city values(null,#{name},#{state},#{country});")
-    @Options(useGeneratedKeys = true, keyColumn = "id")
+    //@Insert("insert into city values(null,#{name},#{state},#{country});")
+    //@Options(useGeneratedKeys = true, keyColumn = "id")
     public int insert(City city);
 }
