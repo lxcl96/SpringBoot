@@ -44,7 +44,13 @@ spring:
 
   aop:
     auto: false # 不开启aop自动代理
-
+  redis:
+#    host: localhost
+#    port: 6379
+    url: redis://:1024@127.0.0.1:6379
+    # username: auth # 低版本redis不用配置用户名，因为本来就没有
+    client-type: jedis
+#    password: 1024
 
 
 
@@ -57,6 +63,13 @@ mybatis:
   mapper-locations: classpath:mybatis/mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true # 开启驼峰转化
+
+# mybatis-plus和mybatis的配置文件前缀不一样
+mybatis-plus:
+  mapper-locations: classpath:mybatis/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
 
 # 开启指定包日志等级【便于查看sql】
 # 格式为：log.level.目标类的全类名=等级

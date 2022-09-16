@@ -6416,11 +6416,11 @@ mybatis-plus官网：https://baomidou.com/
 
 ### 2、NoSql（Redis）
 
-**Redis**
+#### a）**Redis**
 
 > Redis是一个开源（BSD许可），内存存储的数据结构服务器，可用作数据库，高速缓存和消息队列代理。它支持[字符串](https://www.redis.net.cn/tutorial/3508.html)、[哈希表](https://www.redis.net.cn/tutorial/3509.html)、[列表](https://www.redis.net.cn/tutorial/3510.html)、[集合](https://www.redis.net.cn/tutorial/3511.html)、[有序集合](https://www.redis.net.cn/tutorial/3512.html)，[位图](https://www.redis.net.cn/tutorial/3508.html)，[hyperloglogs](https://www.redis.net.cn/tutorial/3513.html)等数据类型。内置复制、[Lua脚本](https://www.redis.net.cn/tutorial/3516.html)、LRU收回、[事务](https://www.redis.net.cn/tutorial/3515.html)以及不同级别磁盘持久化功能，同时通过Redis Sentinel提供高可用，通过Redis Cluster提供自动[分区](https://www.redis.net.cn/tutorial/3524.html)。
 
-**使用Redis**
+#### b）**使用Redis**
 
 + 引入redis场景启动器starter
 
@@ -6433,11 +6433,75 @@ mybatis-plus官网：https://baomidou.com/
 
   > ![image-20220915145735705](.\img\image-20220915145735705.png)
 
-+ 
++ yaml文中配置redis连接属性
+
+  > **常规配置**和**url配置**两种方法都可以，但是要注意我用的是redis3.0版本并没有用户。所以要留空
+  >
+  > ```yaml
+  > spring:
+  >     redis:
+  > #    host: localhost
+  > #    port: 6379
+  >     url: redis://:1024@127.0.0.1:6379
+  >     # username: auth # 低版本redis不用配置用户名，因为本来就没有
+  > #    password: 1024
+  > ```
+  >
+  > 
+
++ 运行测试
+
+  > ```java
+  > @Test
+  > void testRedis() {
+  >     ValueOperations<String, String> operations = stringRedisTemplate.opsForValue();
+  >     operations.set("hello","world");
+  > 
+  >     String hello = operations.get("hello");
+  >     String myname = operations.get("myname");
+  >     System.out.println("hello " + hello);
+  >     System.out.println("myname is " + myname);
+  > 
+  > }
+  > ```
+  >
+  > ![image-20220916103420455](.\img\image-20220916103420455.png)
 
 
 
-***Redis自动配置原理：RedisAutoConfiguration***
+#### c）***SpringBoot使用Redis原理：***
+
+> 1. Redis自动配置类给容器中加入了`LettuceConnectionFactory`（即redis连接工厂的子类）
+>
+>    ```java
+>    @Bean
+>    @ConditionalOnMissingBean(RedisConnectionFactory.class)
+>    LettuceConnectionFactory redisConnectionFactory(
+>          ObjectProvider<LettuceClientConfigurationBuilderCustomizer> builderCustomizers,
+>          ClientResources clientResources) {
+>       LettuceClientConfiguration clientConfig = getLettuceClientConfiguration(builderCustomizers, clientResources,
+>             getProperties().getLettuce().getPool());
+>       return createLettuceConnectionFactory(clientConfig);
+>    }
+>    ```
+>
+> 2. Redis自动配置类给容器中加入了 `StringRedisTemplate`（专门用于操作redis中键值均为String类型的），而此redis模板使用的连接工厂正是第一步的
+>
+>    ```java
+>    @Bean
+>    @ConditionalOnMissingBean
+>    @ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+>    //参数RedisConnectionFactory就是第一步的
+>    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+>       return new StringRedisTemplate(redisConnectionFactory);
+>    }
+>    ```
+>
+> 3. 连接工厂两个子类：
+>
+>    ![image-20220916104121348](.\img\image-20220916104121348.png)
+
+#### d）***Redis自动配置原理：RedisAutoConfiguration***
 
 > + 配置类`RedisProperties`与yaml中的 前缀"spring.redis"绑定
 > + 引入配置类：`LettuceConnectionConfiguration`，与yaml中前缀为"spring.redis.client-type=lettuce"绑定。**该类给redis创建连接工厂 LettuceConnectionFactory（默认采用，较新的客户端连接）**
@@ -6445,11 +6509,143 @@ mybatis-plus官网：https://baomidou.com/
 > + 给容器中注入**`RedisTemplate<Object, Object>`**组件，用于保存数据，*（k和v都可以是Object类型）*
 > + 给容器中注入**`StringRedisTemplate<String, String>`**组件，用于保存数据，*（k和v都只能是String类型）*
 
+#### e）切换Redis连接工厂
+
+**从默认的`LettuceConnectionFactory`到`JedisConnectionFactory`**
+
++ 引入`spring-boot-starter-data-redis`场景启动器
+
++ 排除掉场景启动器中的`lettuce-core`依赖
+
+  > **或者不移除`lettuce-core`依赖，只需要在yaml配置文件中指明 类型即可**
+  >
+  > ```yaml
+  > spring:
+  > 	redis:
+  > 		client-type: jedis # lettuce
+  > ```
+  >
+  > 
+
++ 引入`jedis`依赖
+
+  ```xml
+  <!--redis的自动配置 -->
+  <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+      <!-- 1、排除默认的lettuce 【可以不排除，yaml中指定】-->
+      <exclusions>
+          <exclusion>
+              <groupId>io.lettuce</groupId>
+              <artifactId>lettuce-core</artifactId>
+          </exclusion>
+      </exclusions>
+  </dependency>
+  <!-- 2、引入jedis依赖-->
+  <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <!-- 父类依赖默认为3.8.0，自己最好不要随便定义否则会报错的-->
+      <version>3.8.0</version> 
+  </dependency>
+  ```
+
++ 测试
+
+  ![image-20220916112536876](.\img\image-20220916112536876.png)
 
 
 
+#### d）实际运用
 
+首页显示某些地址的请求次数
 
+**实现思想：拦截器拦截请求，记录到redis中然后前端再取出来**
+
+> **Filter和Interceptor的选择？**
+>
+> + Filter为servlet原生应用，脱离spring可以单独使用
+> + Interceptor为spring提供的接口，只能在spring中使用。可以使用spring的自动注入
+>
+> 总结：我们选择Interceptor拦截器来实现
+
++ *编写拦截器，拦截请求uri，并统计*
+
+  ```java
+  @Slf4j
+  @Component//加到容器中，redis模板才会自动注入redisTemplate
+  public class RedisCountUrlInterceptor implements HandlerInterceptor {
+      @Autowired//为了实现自动注入，该类必须放容器中
+      private RedisTemplate<Object, Object> redisTemplate;
+  
+      @Override
+      public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+          String requestURI = request.getRequestURI();
+          if (!("/acc".equals(requestURI) || "/city".equals(requestURI) || "/sql".equals(requestURI))) {
+              return true;
+          }
+  
+          Integer count = (Integer)redisTemplate.opsForValue().get(requestURI);
+          if (Boolean.FALSE.equals(redisTemplate.hasKey(requestURI)) || null == count) {
+              log.info("请求地址：{}  第一次访问！",requestURI);
+              redisTemplate.opsForValue().set(requestURI,1);
+              return true;
+          }
+  
+          redisTemplate.opsForValue().set(requestURI,count + 1);
+          log.info("请求地址：{}  访问次数：{}",requestURI,count + 1);
+          return true;
+      }
+  }
+  ```
+
++ *配置类中，将刚才的拦截器加入springmvc容器中*
+
+  ```java
+  @Configuration(proxyBeanMethods = false)
+  public class MyConfig implements WebMvcConfigurer {
+  
+      @Autowired//自动注入，因为已经加入到容器中
+      private RedisCountUrlInterceptor redisCountUrlInterceptor;
+      @Override
+      public void addInterceptors(InterceptorRegistry registry) {
+          registry.addInterceptor(redisCountUrlInterceptor)
+                  .addPathPatterns("/**")
+                  .order(Ordered.HIGHEST_PRECEDENCE)
+                  .excludePathPatterns("/css/**","/js/**","/fonts/**","/images/**");
+      }
+  }
+  ```
+
++ *控制器方法中使用*
+
+  ```java
+      @GetMapping("/index.html")
+      public String index(HttpSession session,Model model) {
+          Integer acc = (Integer)redisTemplate.opsForValue().get("/acc");
+          Integer city = (Integer)redisTemplate.opsForValue().get("/city");
+          Integer sql = (Integer)redisTemplate.opsForValue().get("/sql");
+          if (acc == null|| acc < 0) {
+              acc = 0;
+          }
+          if (city == null|| city < 0) {
+              city = 0;
+          }
+          if (sql == null|| sql < 0) {
+              sql = 0;
+          }
+          log.info("/acc={},/city={},/sql={}",acc,city,sql);
+          model.addAttribute("uri_acc",acc);
+          model.addAttribute("uri_city",city);
+          model.addAttribute("uri_sql",sql);
+          return "index";
+      }
+  ```
+
+> ***记录报错：***
+>
+> mybatis-plus和mybatis配置文件前缀不一样（mybatis-plus，mybatis），导致访问`/acc`报错，找不到对应mapper文件。重新设置一下就可以了
 
 ## 2.4、单元测试
 

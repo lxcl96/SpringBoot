@@ -1,8 +1,10 @@
 package com.ly.admin.config;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.ly.admin.interceptor.RedisCountUrlInterceptor;
 import com.ly.admin.interceptor.UserInterceptor;
 import com.ly.admin.servlet.LTServlet;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcRegistrations;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -13,6 +15,7 @@ import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerF
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -30,11 +33,20 @@ import javax.sql.DataSource;
 //@ServletComponentScan(value = {"com.ly.admin.servlet","com.ly.admin.filter","com.ly.admin.listener"})
 @Configuration(proxyBeanMethods = false)
 public class MyConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private RedisCountUrlInterceptor redisCountUrlInterceptor;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new UserInterceptor())
                 .addPathPatterns("/**")
                 .excludePathPatterns("/","/login")
+                .excludePathPatterns("/css/**","/js/**","/fonts/**","/images/**");
+
+        registry.addInterceptor(redisCountUrlInterceptor)
+                .addPathPatterns("/**")
+                .order(Ordered.HIGHEST_PRECEDENCE)
                 .excludePathPatterns("/css/**","/js/**","/fonts/**","/images/**");
     }
 

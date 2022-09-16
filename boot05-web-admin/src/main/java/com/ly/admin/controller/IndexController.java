@@ -11,6 +11,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,6 +37,10 @@ public class IndexController {
     private final Logger log = LoggerFactory.getLogger(IndexController.class);
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private RedisTemplate<Object, Object> redisTemplate;
+
+
 //    @Autowired
 //    private SqlSession sqlSession;
     @Autowired
@@ -97,6 +102,22 @@ public class IndexController {
 //            model.addAttribute("msg","请先登录！");
 //            return "login";
 //        }
+        Integer acc = (Integer)redisTemplate.opsForValue().get("/acc");
+        Integer city = (Integer)redisTemplate.opsForValue().get("/city");
+        Integer sql = (Integer)redisTemplate.opsForValue().get("/sql");
+        if (acc == null|| acc < 0) {
+            acc = 0;
+        }
+        if (city == null|| city < 0) {
+            city = 0;
+        }
+        if (sql == null|| sql < 0) {
+            sql = 0;
+        }
+        log.info("/acc={},/city={},/sql={}",acc,city,sql);
+        model.addAttribute("uri_acc",acc);
+        model.addAttribute("uri_city",city);
+        model.addAttribute("uri_sql",sql);
         return "index";
     }
 
