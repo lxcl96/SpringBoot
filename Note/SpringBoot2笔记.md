@@ -6649,6 +6649,151 @@ mybatis-plus官网：https://baomidou.com/
 
 ## 2.4、单元测试
 
+### 1、JUnit5的变化
+
+<font color='red'>**SPringBoot 2.2.0版本开始引入 JUnit5作为单元测试默认库**</font>
+
+作为最新版本的JUnit框架，JUnit5与之前版本的JUnit框架有很大的不同。由三个不同子项目的几个不同模块组成。
+
+> **JUnit5 = JUnit Platform + JUnit Jupiter + JUnit Vintage**
+
+**JUnit Platform：**JUnit Platform是在JVM上启动测试框架的基础，不仅支持JUnit自制的测试引擎，其他测试引擎也都可以接入
+
+**JUnit Jupiter：**JUnit Jupiter提供了JUnit5的新的编程模型，是JUnit5新特性的核心。内部包含了一个测试引擎，用于在JUnit Platform上运行。
+
+**Junit Vintage：**由于JUnit已经发展多年，为了照顾老的项目，JUnit Vintage提供了兼容Junit4.x，Junit3.x的测试引擎。
+
+![image-20220916153703620](.\img\image-20220916153703620.png)
+
+**注意：**SpringBoot2.4以上版本移除了默认对**Junit Vintage**的依赖，所以如果需要兼容JUnit 4需要自行引入**Junit Vintage**（否则不能使用JUinit4的`@Test`）
+
+> JUnit 5’s Vintage Engine Removed from `spring-boot-starter-test`
+>
+> If you upgrade to Spring Boot 2.4 and see test compilation errors for JUnit classes such as `org.junit.Test`, this may be because JUnit 5’s vintage engine has been removed from `spring-boot-starter-test`. The vintage engine allows tests written with JUnit 4 to be run by JUnit 5. If you do not want to migrate your tests to JUnit 5 and wish to continue using JUnit 4, add a dependency on the Vintage Engine, as shown in the following example for Maven:
+>
+> ```xml
+> <dependency>
+>     <groupId>org.junit.vintage</groupId>
+>     <artifactId>junit-vintage-engine</artifactId>
+>     <scope>test</scope>
+>     <exclusions>
+>         <exclusion>
+>             <groupId>org.hamcrest</groupId>
+>             <artifactId>hamcrest-core</artifactId>
+>         </exclusion>
+>     </exclusions>
+> </dependency>
+> ```
+
+![image-20220916154310236](.\img\image-20220916154310236.png)
+
+### 2、使用JUnit 5
+
++ 引入`spring-boot-starter-test`场景启动器，
+
+  ```xml
+  <!-- 如果有需要，引入JUnit4兼容即- Junit Vintage-->
+  <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+  </dependency>
+  ```
+
++ 创建测试类 （如果是使用IDEA的 spring initializer 也会自动创建）
+
+  ```java
+  import org.junit.jupiter.api.Test;//junit5核心
+  
+  @SpringBootTest //替代之前的 @SpringBootTest + @RunWith(SpringTest.class)
+  class Boot05WebAdminApplicationTests {
+  
+      @Test
+      void contextLoads() {
+  
+      }
+  
+  }
+  ```
+
++ 方法中直接使用
+
+  > + 方法上直接标注@Test方法
+  > + Junit类具有spring的功能，如需要ioc组件，测试类中自动注入即可
+  > + 甚至可以在方法上开启事务`@Transactional`，测试完会自动回滚
+
+### 3、JUnit5注解
+
+JUnit5的注解与JUnit4的注解有所变化，官方连接文档：[JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/#writing-tests-annotations)
+
++ **@Test：**表示方法是测试方法。但是与JUnit4的@Test不同，它的职责非常单一，不能声明任何属性，拓展的测试将会由JUnit Jupiter提供额外测试
++ **@ParameterizedTest：**标识方法是参数化测试
++ **@RepeatedTest：**表示方法可以重复执行，指定次数会自动运行指定次数
++ **@DisplayName：**为侧式类或测试方法设置展示名称
++ **@BeforeEach：**表示在每个单元测试之前执行
++ **@AfterEach：**表示在每个单元测试之后执行
++ **@BeforeAll：**表示在所有单元测试之前执行
++ **@AfterAll：**表示在所有单元测试之后执行
++ **@Tag：**表示单元测试类别，类似于JUnit4中的**@Categories**
++ **@Disabled：**表示测试类或测试方法不执行，类似于JUnit4中的**@Ignore**
++ **@Timeout：**表示测试方法运行如果超过指定时间将会返回错误
++ **@ExtendWith：**为当前测试类或测试方法提供扩展类引用，类似于JUnit4中的**@RunWith**
+
+```java
+//@SpringBootTest//加了此注解才能整合SpringBoot的功能，而里面恰好是有
+@DisplayName("测试Junit5类")
+public class Junit5Test {
+
+    @Test
+    @DisplayName("测试displayName注解")
+    public void testDisplayName() {
+        System.out.println(1);
+    }
+
+    @Test
+    //@Disabled //表示该测试方法被忽略
+    public void test2() {
+        System.out.println(2);
+    }
+
+    @BeforeEach
+    @DisplayName("测试beforeEach注解")
+    public void testBeforeEach() {
+        System.out.println("每一个开始前");
+    }
+
+    @AfterEach
+    @DisplayName("测试afterEach注解")
+    public void testAfterEach() {
+        System.out.println("每一个开始后");
+    }
+
+    @BeforeAll
+    @DisplayName("测试beforeAll注解")
+    public static void testBeforeAll() {
+        System.out.println("所有开始之前");
+    }
+
+    @AfterAll
+    @DisplayName("测试afterAll注解")
+    public static void testAfterAll() {
+        System.out.println("所有结束之后");
+    }
+}
+```
+
+![image-20220916162113564](.\img\image-20220916162113564.png)
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 2.5、指标监控
