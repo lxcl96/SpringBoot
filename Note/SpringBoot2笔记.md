@@ -7342,7 +7342,7 @@ management:
 
 ##### 2、定制info信息
 
-###### 方法1：yaml配置文件中配置 （springboot2.7失效了）
+###### 方法1：yaml配置文件中配置 
 
 ```yaml
 # 写的什么属性，前端就展示什么（appName等也都是自定义的）
@@ -7352,6 +7352,12 @@ info:
   msg: hello world
   mavenProjectName: @project.artifactId@  # 根据当前maven的pom.xml按照层级取值
   mavenParent: @project.parent@
+
+# springboot2.6后默认不开启info了，需要自己去management.info.env.enabled下开启yaml配置文件中才能生效
+management:
+  info:
+    env:
+      enabled: true
 ```
 
 
@@ -7377,7 +7383,7 @@ info:
 
 + 测试访问
 
-  > ![image-20220919165750049](img\image-20220919165750049.png)
+  > ![image-20220919170856073](img\image-20220919170856073.png)
 
 
 

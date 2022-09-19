@@ -44,3 +44,16 @@ druid:
   username: root
   password: 123456
   driverClassName: com.mysql.jdbc.Driver
+
+
+info:
+  appName: boot-admin-1
+  appVersion: 1.0
+  msg: hello world
+  mavenProjectName: @project.artifactId@  # 根据当前maven的pom.xml按照层级取值
+  mavenParent: @project.parent@
+
+management:
+  info:
+    env:
+      enabled: true
