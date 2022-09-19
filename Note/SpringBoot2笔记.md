@@ -7080,7 +7080,310 @@ return Stream.of("apple","banana");
 - 把@Category 替换成@Tag。
 - 把@RunWith、@Rule 和@ClassRule 替换成@ExtendWith。
 
+
+
+***
+
 ## 2.5、指标监控
+
+### 1、Spring Boot Actuator
+
+#### 1.1、简介
+
+未来每一个微服务在云上部署后，我们都需要对其进行监控Monitor、追踪Trace、审计Audit、控制Control等。SpringBoot就抽取了Actuator场景，使得我们每个微服务快速引用即可获得生产级别的应用监控、审计等功能。
+
+#### 1.2、版本区别
+
+SpringBoot 1 内部引入的就是Actuator 1版本，SpringBoot 2 内部引入的是就是Actuator 2版本。
+
+![image-20220919135256222](img\image-20220919135256222.png)
+
+#### 1.3、使用Spring Boot Actuator
+
+对SpringBoot的微服务进行Monitoring监控，Metrics指标、Auditing审计等等
+
+官方链接：[Production-ready Features (spring.io)](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html#actuator)
+
++ 引入场景起动器starter
+
+  > ```xml
+  > <!-- actuator指标监控-->
+  > <dependency>
+  >     <groupId>org.springframework.boot</groupId>
+  >     <artifactId>spring-boot-starter-actuator</artifactId>
+  > </dependency>
+  > ```
+  >
+  > ![image-20220919140730202](img\image-20220919140730202.png)
+
++ 启动当前应用，即可访问Actuator各个监控项
+
+  > 浏览器输入：http://localhost:8080/actuator/**
+
++ yaml配置文件中，暴露所有监控信息到HTTP （**前缀  "management"**）
+
+  > 因为所有的Endpoint（除了health）默认都是暴露到JMX（即java的jconsole中），为了方便查看，开启暴露到HTTP
+  >
+  > ![image-20220919144513334](\img\image-20220919144513334.png)
+  >
+  > ![image-20220919144747410](\img\image-20220919144747410.png)
+  >
+  > ```yaml
+  > management:
+  >   endpoints:
+  >     web:
+  >       base-path: /actuator
+  >       exposure:
+  >         include: '*' # *表示以web方式暴露所以端点
+  >     enabled-by-default: true # 开启所有默认监控端点（不配置也可以），不过为了安全建议改成false，需要哪个Endpoint就开启哪个就行了
+  >   endpoint: # 单独一个端点配置
+  >     health:
+  >       show-details: always
+  >       enabled: true
+  >     info:
+  >       enabled: true
+  >     metrics:
+  >       enabled: true
+  > ```
+
++ 测试访问actuator下的所以监控端点
+
+  > **访问格式：http://localhost:8080/actuator/【endpoint】/[detailPath]**
+  >
+  > http://localhost:8080/actuator/beans
+  >
+  > http://localhost:8080/actuator/configprops
+  >
+  > http://localhost:8080/actuator/metrics
+  >
+  > http://localhost:8080/actuator/metrics/jvm.gc.pause
+  >
+  >
+  > 。。。。。。
+
+#### 1.4、可视化
+
+https://github.com/codecentric/spring-boot-admin
+
+
+
+
+
+### 2、Actuator Endpoint（指标端点）
+
+#### 2.1、***最常用的端点 Endpoint***
+
+| EndpointName       | 描述                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| `auditevents`      | 暴露当前应用程序的审核事件信息。需要一个`AuditEventRepository组件`。 |
+| `beans`            | 显示应用程序中所有Spring Bean的完整列表。                    |
+| `caches`           | 暴露可用的缓存。                                             |
+| `conditions`       | 显示自动配置的所有条件信息，包括匹配或不匹配的原因。         |
+| `configprops`      | 显示所有`@ConfigurationProperties`。                         |
+| `env`              | 暴露Spring的属性`ConfigurableEnvironment`                    |
+| `flyway`           | 显示已应用的所有Flyway数据库迁移。 需要一个或多个`Flyway`组件。 |
+| `health`           | 显示应用程序运行状况信息。                                   |
+| `httptrace`        | 显示HTTP跟踪信息（默认情况下，最近100个HTTP请求-响应）。需要一个`HttpTraceRepository`组件。 |
+| `info`             | 显示应用程序信息。                                           |
+| `integrationgraph` | 显示Spring `integrationgraph` 。需要依赖`spring-integration-core`。 |
+| `loggers`          | 显示和修改应用程序中日志的配置。                             |
+| `liquibase`        | 显示已应用的所有Liquibase数据库迁移。需要一个或多个`Liquibase`组件。 |
+| `metrics`          | 显示当前应用程序的“指标”信息。                               |
+| `mappings`         | 显示所有`@RequestMapping`路径列表。                          |
+| `scheduledtasks`   | 显示应用程序中的计划任务。                                   |
+| `sessions`         | 允许从Spring Session支持的会话存储中检索和删除用户会话。需要使用Spring Session的基于Servlet的Web应用程序。 |
+| `shutdown`         | 使应用程序正常关闭。默认禁用。                               |
+| `startup`          | 显示由`ApplicationStartup`收集的启动步骤数据。需要使用`SpringApplication`进行配置`BufferingApplicationStartup`。 |
+| `threaddump`       | 执行线程转储。                                               |
+
+如果您的应用程序是Web应用程序（Spring MVC，Spring WebFlux或Jersey），则可以使用以下附加端点：
+
+| ID           | 描述                                                         |
+| ------------ | ------------------------------------------------------------ |
+| `heapdump`   | 返回`hprof`堆转储文件。                                      |
+| `jolokia`    | 通过HTTP暴露JMX bean（需要引入Jolokia，不适用于WebFlux）。需要引入依赖`jolokia-core`。 |
+| `logfile`    | 返回日志文件的内容（如果已设置`logging.file.name`或`logging.file.path`属性）。支持使用HTTP`Range`标头来检索部分日志文件的内容。 |
+| `prometheus` | 以Prometheus服务器可以抓取的格式公开指标。需要依赖`micrometer-registry-prometheus`。 |
+
+**最常用的Endpoint：***
+
+> + **`health` ：健康状况**
+> + **`Metrics` ：运行时指标**
+> + **`Loggers` ：日志记录**
+
+#### 2.2、Health Endpoint
+
+健康检查端点，我们一般用于在云平台。平台会定时的检查应用的健康状况，我们就需要Health Endpoint可以为平台返回当前应用的一系列组件健康状况的集合。
+
+重要的几点：
+
++ Health Endpoint返回的结果，是一系列健康检查后的一个汇总报告（**所有的全健康才健康**）
++ 很多的健康检查默认已经自动配置好了，比如：数据库、redis等
++ 可以很容易的添加自定义的健康检查机制
+
+```yaml
+# 开启health端点的详细配置
+management:
+  endpoint: # 单独一个端点配置
+    health:
+      show-details: always
+```
+
+![image-20220919152343006](img\image-20220919152343006.png)
+
+#### 2.3、Metrics Endpoint
+
+提供详细的、层级的 、空间指标信息，这些信息可以被push（主动推送）或者pull（被动获取）方式得到：
+
++ 通过Metrics对接多种监控系统
++ 简化核心Metrics开发
++ 添加自定义Metrics或者扩展已有Metrics
+
+![image-20220919153003391](\img\image-20220919153003391.png)
+
+```json
+// 所有默认可以采集的指标信息
+{
+  "names": [
+    "application.ready.time",
+    "application.started.time",
+    "disk.free",
+    "disk.total",
+    "executor.active",
+    "executor.completed",
+    "executor.pool.core",
+    "executor.pool.max",
+    "executor.pool.size",
+    "executor.queue.remaining",
+    "executor.queued",
+    "http.server.requests",
+    "jvm.buffer.count",
+    "jvm.buffer.memory.used",
+    "jvm.buffer.total.capacity",
+    "jvm.classes.loaded",
+    "jvm.classes.unloaded",
+    "jvm.gc.live.data.size",
+    "jvm.gc.max.data.size",
+    "jvm.gc.memory.allocated",
+    "jvm.gc.memory.promoted",
+    "jvm.gc.overhead",
+    "jvm.gc.pause",
+    "jvm.memory.committed",
+    "jvm.memory.max",
+    "jvm.memory.usage.after.gc",
+    "jvm.memory.used",
+    "jvm.threads.daemon",
+    "jvm.threads.live",
+    "jvm.threads.peak",
+    "jvm.threads.states",
+    "logback.events",
+    "process.cpu.usage",
+    "process.start.time",
+    "process.uptime",
+    "system.cpu.count",
+    "system.cpu.usage",
+    "tomcat.sessions.active.current",
+    "tomcat.sessions.active.max",
+    "tomcat.sessions.alive.max",
+    "tomcat.sessions.created",
+    "tomcat.sessions.expired",
+    "tomcat.sessions.rejected"
+  ]
+}
+```
+
+
+
+#### 2.4、***定制Endpoint***
+
+##### 1、定制Health信息
+
+只需要实现`HealthIndicator`接口，或者继承其抽象类`AbstractHealthIndicator`均可以。
+
++ 继承其抽象类`AbstractHealthIndicator`，定义自己的Health Endpoint，**注意类名结尾必须为HealthIndicator，表示为哪个类型的Endpoint**
+
++ 将当前Health Endpoint加入到容器中
+
+  > ```java
+  > @Component
+  > //类的后缀名  必须为HealthIndicator
+  > public class MyComponentHealthIndicator extends AbstractHealthIndicator {
+  >     private final Logger log = LoggerFactory.getLogger(MyComponentHealthIndicator.class);
+  > 
+  >     /**
+  >      * 编写自己的业务健康检查方法
+  >      * @param builder 不可变 Health 实例的生成器
+  >      * @throws Exception 异常
+  >      */
+  >     @Override
+  >     protected void doHealthCheck(Health.Builder builder) throws Exception {
+  >         //比如测试数据库的连接，文件存不存在等等
+  >         if (new File("D:\\JavaWork\\SpringBoot\\Note\\SpringBoot2笔记.md").exists()) {
+  >             log.info("D:\\JavaWork\\SpringBoot\\Note\\SpringBoot2笔记.md   文件存在");
+  >             builder.up();
+  >         } else {
+  >             log.info("D:\\JavaWork\\SpringBoot\\Note\\SpringBoot2笔记.md   文件不存在");
+  >             builder.down();
+  >         }
+  > 
+  >         builder.withDetail("fileName","SpringBoot2笔记.md")
+  >                 .withDetail("path","D:\\JavaWork\\SpringBoot\\Note\\SpringBoot2笔记.md")
+  >                 .withDetail("directory","D:\\JavaWork\\SpringBoot\\Note\\");
+  > 
+  >     }
+  > }
+  > ```
+
++ 访问`http://localhost:8080/actuator/health`，即可看到自定义Health Endpoint成员
+
+  ![image-20220919163019946](\img\image-20220919163019946.png)
+
+
+
+##### 2、定制info信息
+
+###### 方法1：yaml配置文件中配置 （springboot2.7失效了）
+
+```yaml
+# 写的什么属性，前端就展示什么（appName等也都是自定义的）
+info:
+  appName: boot-admin
+  appVersion: 1.0
+  msg: hello world
+  mavenProjectName: @project.artifactId@  # 根据当前maven的pom.xml按照层级取值
+  mavenParent: @project.parent@
+```
+
+
+
+##### 方法2：编写一个类，实现`InfoContributor`接口，并放在容器中
+
++ 编写一个类，实现`InfoContributor`接口
+
++ 将这个类放在ioc容器中
+
+  > ```java
+  > @Component
+  > public class AppInfoContributor implements InfoContributor {
+  >     @Override
+  >     public void contribute(Info.Builder builder) {
+  >         builder.withDetail("appName","boot-admin")
+  >                 .withDetail("aaaa","aaaaa")
+  >                 .withDetail("bbb",1111)
+  >                 .withDetail("tag",true);
+  >     }
+  > }
+  > ```
+
++ 测试访问
+
+  > ![image-20220919165750049](img\image-20220919165750049.png)
+
+
+
+
+
+
 
 
 

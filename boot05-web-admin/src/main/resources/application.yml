@@ -80,3 +80,26 @@ logging:
       ly:
         admin:
           mapperInterface: debug
+
+management:
+  endpoints: # 所有端点配置
+    web:
+      base-path: /actuator
+      exposure:
+        include: '*' # *表示以web方式暴露所以端点
+    enabled-by-default: false # 开启所有默认监控端点（不配置也可以）
+
+  endpoint: # 单独一个端点配置
+    health:
+      show-details: always
+      enabled: true  #
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+info:
+  appName: boot-admin
+  appVersion: 1.0
+  msg: hello world
+  mavenProjectName: @project.artifactId@  # 根据当前maven的pom.xml按照层级取值
+  mavenParent: @project.parent@
