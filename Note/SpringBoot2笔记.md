@@ -2766,18 +2766,18 @@ public class MyConfig implements WebMvcConfigurer {
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                                     
+>                                                 
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                                         
+>                                                     
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                                     
+>                                                 
 >   }
 >   ```
 >
@@ -2790,7 +2790,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                                  
+>   	                                              
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2806,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                                                         
+>                                                                                                 
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2815,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                                                
+>                                                                                                        
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2851,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                                                     
+>                                                                                                             
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -3936,7 +3936,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                                      
+>   >                                                        
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -4207,7 +4207,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >                   
+  >                               
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -5550,7 +5550,7 @@ https://github.com/alibaba/druid
   >   ```java
   >   //Druid底层赋值原理
   >   configFromPropety(System.getProperties());
-  >       
+  >                   
   >   /*
   >   	所以可以通过jvm的启动参数来配置数据库连接池信息：
   >   	-Ddruid.url=jdbc:mysql:///ssm_crdu -Ddruid.username=root -Ddruid.password=123456 -Ddruid.driverClassName=com.mysql.jdbc.Driver
@@ -6330,20 +6330,20 @@ mybatis-plus官网：https://baomidou.com/
 >   ```java
 >   @GetMapping({"/dynamic_table"})//查询
 >   public String dynamic_table(@RequestParam(name = "pn",defaultValue = "1") Long pn, Model model) {
->   
+>               
 >       /**
 >        *  分页查询
 >        *      参数1为：page分页
 >        *      参数2为：wrapper查询条件
 >        */
 >       Page<User> page = userService.page(new Page<>(pn, 2L), null);
->   
+>               
 >       page.hasPrevious();
 >       page.hasNext();
 >   
 >   
 >       log.info("uri = dynamic_table\n");
->   
+>                           
 >       model.addAttribute("nowUri","dynamic_table");
 >       model.addAttribute("page",page);
 >       return "table/dynamic_table";
@@ -6786,15 +6786,299 @@ public class Junit5Test {
 
 
 
+### 4、断言（assertions）
+
+官方链接：[JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/#writing-tests-assertions)
+
+**作用：检查业务逻辑返回的数据是否合理**
+
+**所有的测试运行结束以后，会有一个详细地测试报告**
+
+断言（assertions）是测试方法中的核心部分，用于对测试需求满足的条件进行验证。**这些断言方法都是`org.junit.jupiter.api.Assertions`的静态方法**。JUnit 5 内置的断言可以分为以下几个类别：
+
+#### 4.1、简单断言
+
+> 用来对单个值进行简单的验证。如：
+>
+> | 方法            | 说明                                 |
+> | --------------- | ------------------------------------ |
+> | assertEquals    | 判断两个对象或两个原始类型是否相等   |
+> | assertNotEquals | 判断两个对象或两个原始类型是否不相等 |
+> | assertSame      | 判断两个对象引用是否指向同一个对象   |
+> | assertNotSame   | 判断两个对象引用是否指向不同的对象   |
+> | assertTrue      | 判断给定的布尔值是否为 true          |
+> | assertFalse     | 判断给定的布尔值是否为 false         |
+> | assertNull      | 判断给定的对象引用是否为 null        |
+> | assertNotNull   | 判断给定的对象引用是否不为 null      |
+
+> ```java
+> @Test
+> @DisplayName("测试简单断言")
+> void testSimpleAssertions() {
+>     int sum = sum(1, 3);
+>     Assertions.assertEquals(5,sum,"要求必须是5");
+> }
+> int sum(int i,int j) {
+>     return i + j;
+> }
+> ```
+>
+> ![image-20220919094759290](.\img\image-20220919094759290.png)
+
+#### 4.2、数组断言
+
+用于判断两个数组是否元素相同（地址可以不同）
+
+```java
+@Test
+@DisplayName("测试数组断言")
+void testArrayAssertions() {
+    Assertions.assertArrayEquals(new int[]{1,2},new int[]{2,1},"数组元素不一样");
+
+}
+```
+
+![image-20220919100319842](.\img\image-20220919100319842.png)
+
+#### 4.3、组合断言
+
+必须同时满足一组断言
+
+```java
+@Test
+@DisplayName("测试组合断言")
+void testAllAssertions() {
+    //必须满足所有断言
+    Assertions.assertAll("第一组条件" ,
+                         () -> Assertions.assertTrue(true) ,//lambda表达式	
+                         () -> Assertions.assertNull(null));
+}
+```
+
+#### 4.4、异常断言
+
+出现了指定异常就不会报错，否则就会报错
+
+```java
+@Test
+@DisplayName("异常断言")
+void testExceptionAssertions(){
+    //类似于异常捕获，如果不出现才会报错，出现了指定异常就不会报错
+    Assertions.assertThrows(ArithmeticException.class,
+            () -> {int i = 10/ 1;},
+            "业务逻辑居然正确运行了！");
+
+
+    System.out.println("end");
+}
+```
+
+![image-20220919102556195](.\img\image-20220919102556195.png)
+
+#### 4.5、超时断言
+
+超过指定时间，会报错
+
+```java
+@Test
+@DisplayName("测试超时断言")
+void testTimeOutAssertions() {
+    Assertions.assertTimeout(Duration.ofSeconds(1),
+            () -> {Thread.sleep(3000);},
+            "超过1秒钟");
+}
+```
+
+![image-20220919103240369](.\img\image-20220919103240369.png)
+
+#### 4.6、快速失败
+
+```java
+@Test
+@DisplayName("测试快速失败")
+void testFail() {
+    Assertions.fail("测试提前结束");
+    System.out.println("end");
+}
+```
+
+![image-20220919103903944](.\img\image-20220919103903944.png)
 
 
 
+### 5、前置条件（assumptions）
+
+官方链接：[JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/#writing-tests-assumptions)
+
+JUnit 5 中的前置条件（assumptions【假设】）类似于断言，不同之处在于**不满足的断言会使得测试方法失败**，而**不满足的前置条件只会使得测试方法的执行终止**。前置条件可以看成是测试方法执行的前提，当该前提不满足时，就没有继续执行的必要。
+
+> 测试方法标注了`@Disabled`和使用了前置条件正常退出的，在Maven测试中都是提示 skiped 跳过而不是failed失败。
+
+```java
+@Test
+@DisplayName("测试前置条件")
+void testAssumptions() {
+    Assumptions.assumeTrue(false,"为true才能正常执行，当前为false，开始退出。");
+    System.out.println("end");
+}
+```
+
+![image-20220919105746054](img\image-20220919105746054.png)
 
 
 
+### 6、嵌套测试
+
+官方链接：[JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/#writing-tests-nested)
+
+JUnit 5 可以通过 Java 中的内部类和`@Nested` 注解实现嵌套测试，从而可以更好的把相关的测试方法组织在一起。在内部类中可以使用`@BeforeEach` 和@`AfterEach`注解，而且嵌套的层次没有限制。
+
+```java
+package com.ly.admin;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import java.util.EmptyStackException;
+import java.util.Stack;
+import static org.junit.jupiter.api.Assertions.*;
+
+
+@DisplayName("嵌套测试")
+public class TestingAStackDemo {
+
+
+    Stack<Object> stack;
+
+    @Test
+    @DisplayName("is instantiated with new Stack()")
+    void isInstantiatedWithNew() {
+        new Stack<>();//new了但是没有赋值给stack
+        /**
+         * 嵌套测试情况下，外层的Test不能驱动内层的Before(After)Each/All之类的注解方法
+         */
+        assertNull(stack);
+    }
+
+    @Nested
+    @DisplayName("when new")
+    class WhenNew {
+
+        @BeforeEach
+        void createNewStack() {
+            stack = new Stack<>();
+        }
+
+        @Test
+        @DisplayName("is empty")
+        void isEmpty() {
+            assertTrue(stack.isEmpty());
+        }
+
+        @Test
+        @DisplayName("throws EmptyStackException when popped")
+        void throwsExceptionWhenPopped() {
+            assertThrows(EmptyStackException.class, stack::pop);
+        }
+
+        @Test
+        @DisplayName("throws EmptyStackException when peeked")
+        void throwsExceptionWhenPeeked() {
+            assertThrows(EmptyStackException.class, stack::peek);
+        }
+
+        @Nested
+        @DisplayName("after pushing an element")
+        class AfterPushing {
+
+            String anElement = "an element";
+
+            /**
+             * 嵌套测试情况下，内部类（即里层）的Test可以驱动外层的Before(After)Each/All之类的注解方法
+             */
+            @BeforeEach
+            void pushAnElement() {
+                stack.push(anElement);//因为外层类已经给stack赋值对象了
+            }
+
+            @Test
+            @DisplayName("it is no longer empty")
+            void isNotEmpty() {
+                assertFalse(stack.isEmpty());
+            }
+
+            @Test
+            @DisplayName("returns the element when popped and is empty")
+            void returnElementWhenPopped() {
+                assertEquals(anElement, stack.pop());
+                assertTrue(stack.isEmpty());
+            }
+
+            @Test
+            @DisplayName("returns the element when peeked but remains not empty")
+            void returnElementWhenPeeked() {
+                assertEquals(anElement, stack.peek());
+                assertFalse(stack.isEmpty());
+            }
+        }
+    }
+}
+```
+
+![image-20220919113106273](img\image-20220919113106273.png)
 
 
 
+### 7、参数化测试
+
+官方链接：[JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/#writing-tests-parameterized-tests)
+
+参数化测试是JUnit5很重要的一个新特性，它使得用不同的参数多次运行测试成为了可能，也为我们的单元测试带来许多便利。
+
+利用`@ValueSource`等注解，指定入参，我们将可以使用不同的参数进行多次单元测试，而不需要每新增一个参数就新增一个单元测试吗，省去很多冗余代码。
+
++ **`@ValueSource`**：为参数化测试指定入参来源，支持八大基础类以及String类型，Class类型
++ **`@NullSource`**：表示为参数化测试提供一个null的入参
++ **`@EnumSource`**：表示为参数化测试提供一个枚举入参
++ **`@CSvFileSource`**：表示读取指定CSV文件内容作为参数化测试入参
++ **`@MethodSource`**：表示读取指定方法的返回值作为参数化测试入参（注意方法返回需要的是一个流）
+
+> 当然如果参数化测试仅仅只能做到指定普通的入参还达不到让我觉得惊艳的地步。让我真正感到他的强大之处的地方在于他可以支持外部的各类入参。如:***CSV,YML,JSON 文件甚至方法的返回值也可以作为入参***。只需要去实现**ArgumentsProvider**接口，任何外部文件都可以作为它的入参。
+
+```java
+@NullSource//null值
+@ValueSource(ints = {1,2,3,4,5})//八大基础类型和String，class类型
+@MethodSource(value = {"StringProvider"})//方法返回值参数，注意必须为stream形式
+@EnumSource(HttpStatus.class)//枚举类中所有类型均测试
+@ParameterizedTest()
+@DisplayName("参数化测试")
+void testParameterizedTest(Object obj) {
+System.out.println("obj=" + obj + ", class=" + obj.getClass());
+}
+
+
+static Stream<String> StringProvider(){
+return Stream.of("apple","banana");
+}
+```
+
+![image-20220919133003373](img\image-20220919133003373.png)
+
+
+
+### 8、迁移指南（从JUnit 4 迁移到JUnit 5）
+
+官方链接：[JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/#migrating-from-junit4)
+
+在进行迁移的时候需要注意如下的变化：
+
+- 注解在 org.junit.jupiter.api 包中，断言在 org.junit.jupiter.api.Assertions 类中，前置条件在 org.junit.jupiter.api.Assumptions 类中。
+- 把@Before 和@After 替换成@BeforeEach 和@AfterEach。
+- 把@BeforeClass 和@AfterClass 替换成@BeforeAll 和@AfterAll。
+- 把@Ignore 替换成@Disabled。
+- 把@Category 替换成@Tag。
+- 把@RunWith、@Rule 和@ClassRule 替换成@ExtendWith。
 
 ## 2.5、指标监控
 
