@@ -1,0 +1,5 @@
+person:
+  age: 19
+
+server:
+  port: 7777

@@ -51,7 +51,6 @@ info:
   appVersion: 1.0
   msg: hello world
   mavenProjectName: @project.artifactId@  # 根据当前maven的pom.xml按照层级取值
-  mavenParent: @project.parent@
 
 management:
   info:

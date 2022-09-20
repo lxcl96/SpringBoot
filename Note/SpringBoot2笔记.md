@@ -7362,7 +7362,7 @@ management:
 
 
 
-##### 方法2：编写一个类，实现`InfoContributor`接口，并放在容器中
+###### 方法2：编写一个类，实现`InfoContributor`接口，并放在容器中
 
 + 编写一个类，实现`InfoContributor`接口
 
@@ -7387,13 +7387,259 @@ management:
 
 
 
+##### 3、定制Metrics
+
+***a、SpringBoot支持自动适配的Metrics***
+
+> - JVM metrics, report utilization of:
+>
+> - - Various memory and buffer pools
+>   - Statistics related to garbage collection
+>   - Threads utilization
+>   - Number of classes loaded/unloaded
+>
+> - CPU metrics
+> - File descriptor metrics
+> - Kafka consumer and producer metrics
+> - Log4j2 metrics: record the number of events logged to Log4j2 at each level
+> - Logback metrics: record the number of events logged to Logback at each level
+> - Uptime metrics: report a gauge for uptime and a fixed gauge representing the application’s absolute start time
+> - Tomcat metrics (`server.tomcat.mbeanregistry.enabled` must be set to `true` for all Tomcat metrics to be registered)
+> - [Spring Integration](https://docs.spring.io/spring-integration/docs/5.4.1/reference/html/system-management.html#micrometer-integration) metrics
 
 
 
+***b、增加定制的Metrics***
+
+**方法 1：有参构造器注入**
+
+> 比如统计一下`insertOne()`函数调用的次数
+>
+> ```java
+> @Service
+> public class CityService {
+>     @Autowired
+>     private CityMapper cityMapper;
+>     private Counter counter;
+>     //1、通过有参构造器，利用第三方micrometer添加metrics指标
+>     public CityService(MeterRegistry meterRegistry){
+>         //参数就是ip:port/actuator/metrics中展示的
+>         counter = meterRegistry.counter("CityService.insertOne.count");
+>     }
+>     public City getCityById(Long id) {
+>         return cityMapper.getCItyById(id);
+>     }
+> 
+>     public void insertOne(City city) {
+>         //2、每次调用insertOne方法，都增加1次计数
+>         counter.increment();
+>         int insert = cityMapper.insert(city);
+>         System.out.println("insert " + insert);
+>     }
+> }
+> ```
+>
+> 访问地址：[localhost:8080/actuator/metrics](http://localhost:8080/actuator/metrics)
+>
+> ![image-20220920102907470](img\image-20220920102907470.png)
+>
+> 发送对应请求，发现value值增加了：
+>
+> ![image-20220920103222206](img\image-20220920103222206.png)
+
+**方法 2：配置类中添加组件方式**
+
+> ```java
+> @Bean
+> MeterBinder queueSize(Queue queue) {
+>     //在metrics中添加一个queueSize的指标
+>     return (registry) -> Gauge.builder("queueSize", queue::size).register(registry);
+> }
+> ```
+>
+> ![image-20220920104116571](img\image-20220920104116571.png)
 
 
+
+##### 4、定制Endpoint（即类似info，health，metrics）
+
+> + 编写自己的Endpoint
+>
+>   ```java
+>   //1、放在容器中
+>   @Component
+>   //2、标注@Endpoint注解，并起一个名字
+>   //绑定自定义的配置文件
+>   @ConfigurationProperties(prefix = "myservice")
+>   @Endpoint(id = "myService") //和info、health、metrics同级别的
+>   public class MyServiceEndpoint {
+>   	
+>       //3、定义read操作
+>       @ReadOperation
+>       public Map getDockerInfo(){
+>           return singletonMap("info","docker started...");
+>       }
+>   	//4、定义write操作
+>       @WriteOperation
+>       private void restartDocker(){
+>           System.out.println("docker restarted....");
+>       }
+>   
+>   }
+>   ```
+>
+> + 把自己的Endpoint暴露到外面浏览器中（yaml中配置，默认自定义的Endpoint都是开启的）
+>
+> + 访问地址：[localhost:8080/actuator](http://localhost:8080/actuator)
+>
+>   ![image-20220920105647636](img\image-20220920105647636.png)
+
+
+
+##### 5、其他
+
+场景：开发**ReadinessEndpoint**来管理程序是否就绪，或者**Liveness**、**Endpoint**来管理程序是否存活；
+
+当然，这个也可以直接使用 https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-kubernetes-probes
+
+##### 6、大屏展示项目
+
+官方连接：https://github.com/codecentric/spring-boot-admin
+
+> + 监控系统项目spring-boot-admin引入依赖
+>
+>   ```xml
+>   <dependency>
+>       <groupId>de.codecentric</groupId>
+>       <artifactId>spring-boot-admin-starter-server</artifactId>
+>       <version>2.5.1</version>
+>   </dependency>
+>   ```
+>
+> + 同一台机器记得修改端口号，防止冲突
+>
+> + 客户端微服务项目（自己的项目）引入客户端依赖，便于监控系统spring-boot-admin进行采集
+>
+>   ```xml
+>   <!-- 引入监控spring-boot-admin 依赖，表示当前微服务被监控系统收集-->
+>   <dependency>
+>       <groupId>de.codecentric</groupId>
+>       <artifactId>spring-boot-admin-starter-client</artifactId>
+>       <version>2.5.1</version>
+>   </dependency>
+>   ```
+>
+> + 在客户端（自己的项目）的yml配置文件中，指明监控系统网址（即向哪个网站暴露指标数据）
+>
+>   ```properties
+>   # 表示监控系统的网址就是 http://localhost:8888，客户端暴露监控数据到这儿
+>   spring.boot.admin.client.url=http://localhost:8888
+>   
+>   # 一定要开启以web方式暴露所有
+>   # management.endpoints.web.exposure.include=*  
+>   
+>   
+>   # 微服务客户端的地址 使用客户端的ip而不是hostname
+>   spring.boot.admin.client.instance.prefer-ip=true
+>   # 定义微服务的名称，方便在监控系统中显示
+>   spring.application.name=boot05-web-admin
+>   ```
+>
+> + 启动客户端（自己的项目）和监控系统项目
+>
+>   ![image-20220920144235467](img\image-20220920144235467.png)
+
+
+
+***
 
 ## 2.6、原理解析
+
+Spring Core Features ：https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features
+
+### 1、Profile
+
+为了方便多环境适配，springboot简化了profile功能。
+
+#### 1.1、application-profile 指定环境配置文件
+
++ 默认配置文件 `application.yaml/yml/properties`任何时候都会被加载
++ 指定环境配置文件 `application-{env}.yaml`
++ 激活指定配置环境
+  - 配置文件激活
+  - 命令行激活
++ 默认配置与环境配置同时生效
++ 同名配置项，profile配置优先
+
+***方法1：默认配置文件指定环境profile***
+
+![image-20220920153905454](img\image-20220920153905454.png)
+
+***方法2：已经打好包的命令行指定***
+
+<font color='red'>注意，此方法为方法1的延续，即必须存在指定的环境profile配置文件。</font>
+
+![image-20220920154752159](img\image-20220920154752159.png)
+
+#### 1.2、@Profile 根据环境装载ioc组件
+
+```java
+@Data
+@Component
+@Profile("product") //配置文件指定激活环境为 product则将此组件加入到容器中
+@ConfigurationProperties(prefix = "person")//从配置文件中自动填充属性
+public class Boss implements Person{
+    private String name;
+    private int age;
+}
+
+@Data
+@Component
+@Profile("test")//配置文件指定激活环境为 ptest则将此组件加入到容器中
+@ConfigurationProperties(prefix = "person")//从配置文件中自动填充属性
+public class Worker implements Person{
+    private String name;
+    private int age;
+}
+```
+
+#### 1.3、profile分组
+
+就是在基础的application配置文件中，将多个profile环境分到同一组，启动服务时可以以组为单位启动。（同时激活多个profile配置文件）
+
+<font color='red'>注意：profile组启动时所有环境的配置文件均会生效，如果出现属性重复配置则以最后一个环境的为准【组下标大的】</font>
+
+> + 测试环境`application-test.yaml`配置 
+>
+>   ```yaml
+>   person:
+>     age: 19
+>   server:
+>     port: 7777
+>   ```
+>
+> + 先行版环境`application-preview.yaml`配置
+>
+>   ```yaml
+>   person:
+>     name: 先行版-张三
+>   server:
+>     port: 10086
+>   ```
+>
+> + 基础的配置文件`application.properties`中指明profile组，并激活
+>
+>   ```properties
+>   # 指定激活的profile环境  【以组为单位启动】
+>   spring.profiles.active=myTest
+>   # myTest为组名，多环境同时生效且重复属性以最后的配置文件为准
+>   spring.profiles.group.myTest[0]=test
+>   spring.profiles.group.myTest[1]=preview
+>   ```
+>
+> + 访问测试
+>
+>   ![image-20220920162527315](img\image-20220920162527315.png)
 
 
 

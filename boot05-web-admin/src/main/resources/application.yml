@@ -87,7 +87,7 @@ management:
       base-path: /actuator
       exposure:
         include: '*' # *表示以web方式暴露所以端点
-    enabled-by-default: false # 开启所有默认监控端点（不配置也可以）
+    enabled-by-default: true # 开启所有默认监控端点（不配置也可以）
 
   endpoint: # 单独一个端点配置
     health:

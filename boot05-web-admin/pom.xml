@@ -127,6 +127,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
+        <!-- 引入监控spring-boot-admin 依赖，表示当前微服务被监控系统收集-->
+        <dependency>
+            <groupId>de.codecentric</groupId>
+            <artifactId>spring-boot-admin-starter-client</artifactId>
+            <version>2.5.1</version>
+        </dependency>
     </dependencies>
 
     <build>

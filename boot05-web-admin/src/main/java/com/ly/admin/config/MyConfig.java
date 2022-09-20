@@ -4,6 +4,8 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.ly.admin.interceptor.RedisCountUrlInterceptor;
 import com.ly.admin.interceptor.UserInterceptor;
 import com.ly.admin.servlet.LTServlet;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcRegistrations;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import javax.sql.DataSource;
+import java.util.Queue;
 
 
 /**
@@ -90,5 +93,11 @@ public class MyConfig implements WebMvcConfigurer {
     }
 
 
+
+    @Bean
+    //在metrics中添加一个queueSize的指标
+    MeterBinder queueSize(Queue queue) {
+        return (registry) -> Gauge.builder("queueSize", queue::size).register(registry);
+    }
 
 }

@@ -1,0 +1,6 @@
+person:
+  name: 先行版-张三
+
+
+server:
+  port: 10086
