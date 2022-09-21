@@ -7643,6 +7643,355 @@ public class Worker implements Person{
 
 
 
+### 2、外部化配置
+
+官方连接：https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/features.html#features.external-config
+
+#### 2.1、外部配置源
+
+常用：**Java Properties文件、YAML文件、环境变量、命令行参数**
+
+> ***Spring Boot 官方文档：***
+>
+> Spring Boot uses a very particular `PropertySource` order that is designed to allow sensible overriding of values. Properties are considered in the following order (with values from lower items overriding earlier ones):
+>
+> 1. Default properties (specified by setting `SpringApplication.setDefaultProperties`).
+> 2. [`@PropertySource`](https://docs.spring.io/spring-framework/docs/5.3.21/javadoc-api/org/springframework/context/annotation/PropertySource.html) annotations on your `@Configuration` classes. Please note that such property sources are not added to the `Environment` until the application context is being refreshed. This is too late to configure certain properties such as `logging.*` and `spring.main.*` which are read before refresh begins.
+> 3. Config data (such as `application.properties` files).  <u>（最常用）</u>
+> 4. A `RandomValuePropertySource` that has properties only in `random.*`.
+> 5. OS environment variables.
+> 6. Java System properties (`System.getProperties()`).
+> 7. JNDI attributes from `java:comp/env`.
+> 8. `ServletContext` init parameters.
+> 9. `ServletConfig` init parameters.
+> 10. Properties from `SPRING_APPLICATION_JSON` (inline JSON embedded in an environment variable or system property).
+> 11. Command line arguments.
+> 12. `properties` attribute on your tests. Available on [`@SpringBootTest`](https://docs.spring.io/spring-boot/docs/2.7.1/api/org/springframework/boot/test/context/SpringBootTest.html) and the [test annotations for testing a particular slice of your application](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/features.html#features.testing.spring-boot-applications.autoconfigured-tests).
+> 13. [`@TestPropertySource`](https://docs.spring.io/spring-framework/docs/5.3.21/javadoc-api/org/springframework/test/context/TestPropertySource.html) annotations on your tests.
+> 14. [Devtools global settings properties](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/using.html#using.devtools.globalsettings) in the `$HOME/.config/spring-boot` directory when devtools is active.
+>
+> <font color='red'>上面14种方法配置属性，越往下优先级越高。即：14>13>...>1 （意思就是出现重名属性以后面的配置为准）</font>
+>
+> Config data files are considered in the following order:
+>
+> 1. [Application properties](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/features.html#features.external-config.files) packaged inside your jar (`application.properties` and YAML variants).
+> 2. [Profile-specific application properties](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/features.html#features.external-config.files.profile-specific) packaged inside your jar (`application-{profile}.properties` and YAML variants).
+> 3. [Application properties](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/features.html#features.external-config.files) outside of your packaged jar (`application.properties` and YAML variants).
+> 4. [Profile-specific application properties](https://docs.spring.io/spring-boot/docs/2.7.1/reference/html/features.html#features.external-config.files.profile-specific) outside of your packaged jar (`application-{profile}.properties` and YAML variants).
+
+#### 2.2、配置文件（application.yaml/properties/yml）查找位置
+
++ classpath根路径下
++ classpath根路径下config目录
++ jar包当前目录（发布时）
++ jar包当前目录的config目录（发布时）
++ /config子目录的**直接一级**子目录（名字随便取，不一定是config，且不适应与classpath类路径下的）
+
+> ***Spring Boot 官方文档：***
+>
+> 1. From the classpath
+>    1. The classpath root
+>    2. The classpath `/config` package
+> 2. From the current directory
+>    1. The current directory
+>    2. The `/config` subdirectory in the current directory
+>    3. Immediate child directories of the `/config` subdirectory
+>
+> <font color='red'>上面5种配置文件配置属性，越往下优先级越高。即：5>4>...>1 （意思就是出现重名属性以后面的配置为准）</font>
+
+#### 2.3、配置文件加载顺序
+
++ 当前jar包内部的`application.properties/yaml/yml`
++ 当前jar包内部的`application - [envProfile].properties/yaml/yml`
++ 引用的jar包外的`application.properties/yaml/yml`
++ 引用的jar包外的`application - [envProfile].properties/yaml/yml`
+
+<font color='red'>越往下优先级越高，后面的覆盖前面的</font>
+
+> 自己可以将2.2和2.3整合起来详细区分每一个加载顺序：
+>
+> + jar包内部
+>   1. jar包内classpath根路径下
+>      + 默认的
+>      + profile的
+>   2. jar包内classpath根路径/config下
+>      + 默认的
+>      + profile
+> + jar包外部
+>   1. jar包所在目录
+>      + 默认的
+>      + profile的
+>   2. jar包所在的/config子目录
+>      + 默认的
+>      + profile的
+>   3. /config的直接一级子目录
+>      + 默认的
+>      + profile的
+
+#### 2.4、总结
+
+***指定环境Profile优先、jar包外所在目录的优先、后面的可以覆盖前面的同名配置项***
+
+
+
+### 3、自定义Starter
+
+#### 3.1、starter启动原理
+
++ 自定义的Starter，引入的只是一个pom文件，并没有任何代码，所有的自动配置项均在其中的一个依赖`xxx-autoconfigure`
+
++ starter-pom中引入所有的依赖，包括xxxx-autoconfigure包
+
+  ![image-20220921101047348](img\image-20220921101047348.png)
+
++ autoconfiguration包中配置使用<font color='red'>***META-INF/spring.factories***</font>中EnableAutoConfiguration的值，使得项目启动时加载指定的自动配置类
+
++ 编写自动配置类 **xxxAutoConfiguration** 绑定对应的属性配置类**xxProperties**
+
+  > + **@AutoConfiguration**
+  > + **@ConditionalXXX**
+  > + **EnableConfigurationProperties** （绑定配置属性类的值，加入到ioc容器中）
+  > + **@Bean**
+  > + ...
+
+<font color='red'>**引入starter**</font> <font color='blue'> **---  xxxAutoConfiguration  --- 容器中放入组件 --- 绑定xxxProperties ---**</font> <font color='red'>**yaml配置项**</font>
+
+#### 3.2、自定义starter
+
+一共分为三个项目：
+
++ **ly-hello-spring-boot-starter-autoconfigure** ：自定义场景启动器starter的自动配置类
++ **ly-hello-spring-boot-satrter**：自定义的场景起动器
++ **boot-09-hello-test**：自己的测试类
+
+> ***项目目的：***创建一个自己的starter启动器，实现sayHello功能。即输入用户名，加上配置文件的前后缀返回返回给用户。
+>
+> 1. 使用Spring Initializer （不选择任何依赖）创建项目 `ly-hello-spring-boot-starter-autoconfigure`，项目pom文件如下：
+>
+>    ```xml
+>    <!-- ly-hello-spring-boot-starter-autoconfigure-->
+>    <?xml version="1.0" encoding="UTF-8"?>
+>    <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+>        <modelVersion>4.0.0</modelVersion>
+>        <parent>
+>            <groupId>org.springframework.boot</groupId>
+>            <artifactId>spring-boot-starter-parent</artifactId>
+>            <version>2.7.3</version>
+>            <relativePath/> <!-- lookup parent from repository -->
+>        </parent>
+>        <groupId>com.ly</groupId>
+>        <artifactId>ly-hello-spring-boot-starter-autoconfigure</artifactId>
+>        <version>0.0.1-SNAPSHOT</version>
+>        <name>ly-hello-spring-boot-starter-autoconfigure</name>
+>        <description>ly-hello-spring-boot-starter-autoconfigure</description>
+>        <properties>
+>            <java.version>1.8</java.version>
+>        </properties>
+>        <dependencies>
+>            <dependency>
+>                <groupId>org.springframework.boot</groupId>
+>                <artifactId>spring-boot-starter</artifactId>
+>            </dependency>
+>            <!-- 由于不进行测试其他的依赖都删掉了，只留下最核心的spring-boot-starter-->
+>        </dependencies>
+>    
+>    </project>
+>    ```
+>
+> 2. 创建`HelloProperties.class`，用于绑定yaml配置文件的配置属性类
+>
+>    ```java
+>    @ConfigurationProperties(prefix = "ly.hello") //绑定配置文件的前缀
+>    public class HelloProperties {
+>    
+>        private String prefix;
+>        private String suffix;
+>    	//getter和setter方法
+>        ...
+>    }
+>    ```
+>
+> 3. 创建核心服务类`HelloService.class`实现sayHello方法
+>
+>    ```java
+>    public class HelloService {
+>        @Autowired //自动注入？ 但是我们没有向ioc添加这个组件啊？ 别急，继续往下看
+>        private HelloProperties helloProperties;
+>    
+>    
+>        public String sayHello(String userName) {
+>            return helloProperties.getPrefix() + ": " + userName + ">" + helloProperties.getSuffix();
+>        }
+>    
+>    }
+>    ```
+>
+> 4. 核心功能写完了，下面就是实现starter的自动配置功能，创建`HelloServiceAutoConfiguration`用于自动配置
+>
+>    ```java
+>    @AutoConfiguration //表明是个配置类
+>    //@ConditionalOnMissingBean(HelloService.class) //生效条件
+>    
+>    //两个功能：1、自动绑定属性 2、放在ioc容器中（这里就解释了上一步的HelloProperties自动注入问题），但是放在这里还是会有问题，因为如果用户选择自己创建HelloService，那么该配置类就不会生效也就不会向ioc容器中加入 HelloProperties组件，那么创建HelloService就会报错（除非自己再手动加入HelloProperties到ioc容器中太麻烦了），解决方法：@ConditionalOnMissingBean(HelloService.class)放在@Bean上 完美解决
+>    @EnableConfigurationProperties(HelloProperties.class)
+>    public class HelloServiceAutoConfiguration {
+>    
+>    
+>        @Bean
+>        @ConditionalOnMissingBean(HelloService.class) //解决方法，保证配置属性类HelloProperties总是生效
+>        public HelloService helloService() {
+>            return new HelloService();
+>        }
+>    }
+>    ```
+>
+> 5. 自动配置写完了，那么就需要默认当引用此starter时自动生效，所以需要在类下 创建`/META_INF/spring.factories`，因为程序启动时会自动启动每个包的`/META_INF/spring.factories`中配置类
+>
+>    ```properties
+>    org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+>    com.ly.hello.auto.HelloServiceAutoConfiguration
+>    ```
+>
+> 6. 使用Maven进行打包，并安装到本地仓库中。`ly-hello-spring-boot-starter-autoconfigure`项目目录结构结构如下：
+>
+>    ![image-20220921145639788](img\image-20220921145639788.png)
+>
+> 7. 使用Maven创建场景启动器starter`ly-hello-spring-boot-satrter`（starter就是一个pom文件，所以用Maven创建工程即可）,并导入上一个工程（自动配置项目）的依赖。pom文件如下
+>
+>    ```xml
+>    <!-- ly-hello-spring-boot-starter-->
+>    <?xml version="1.0" encoding="UTF-8"?>
+>    <project xmlns="http://maven.apache.org/POM/4.0.0"
+>             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+>        <modelVersion>4.0.0</modelVersion>
+>    
+>        <groupId>com.ly</groupId>
+>        <artifactId>ly-hello-spring-boot-satrter</artifactId>
+>        <version>1.0-SNAPSHOT</version>
+>    
+>        <properties>
+>            <maven.compiler.source>8</maven.compiler.source>
+>            <maven.compiler.target>8</maven.compiler.target>
+>        </properties>
+>    
+>        <dependencies>
+>            <dependency>
+>                <groupId>com.ly</groupId>
+>                <!-- ly-hello-spring-boot-starter-autoconfigure 自动配置工程-->
+>                <artifactId>ly-hello-spring-boot-starter-autoconfigure</artifactId>
+>                <version>0.0.1-SNAPSHOT</version>
+>            </dependency>
+>        </dependencies>
+>    
+>    </project>
+>    ```
+>
+> 8. starter就是一个pom文件，所以结束了，使用Maven 的install将其打包并安装到本地仓库。`ly-hello-spring-boot-starter`项目结构如下：
+>
+>    ![image-20220921150234901](img\image-20220921150234901.png)
+>
+> 9. 终于到这一步了，使用Spring Initializer创建一个测试项目`boot-09-hello-test`，勾选spring web依赖即可
+>
+> 10. 在测试项目`boot-09-hello-test`中引入自己的场景启动器starter，并刷新
+>
+>     ```xml
+>     <dependency>
+>         <groupId>com.ly</groupId>
+>         <artifactId>ly-hello-spring-boot-satrter</artifactId>
+>         <version>1.0-SNAPSHOT</version>
+>     </dependency>
+>     ```
+>
+>     依赖关系如下：
+>
+>     ![image-20220921150658422](img\image-20220921150658422.png)
+>
+> 11. 创建一个测试controller，使用自动配置的`HelloService`
+>
+>     ```java
+>     @RestController
+>     public class HelloServiceTest {
+>         @Autowired
+>         private HelloService helloService;
+>     
+>         @GetMapping("/")
+>         public String hello() {
+>             return helloService.sayHello("ly");
+>         }
+>     }
+>     ```
+>
+> 12. yaml配置文件中，绑定`HelloProperties`属性配置类的前后缀 `ly.hello`
+>
+>     ```properties
+>     ly.hello.prefix=hello
+>     ly.hello.suffix=666
+>     ```
+>
+> 13. 启动服务测试
+>
+>     ![image-20220921151006302](img\image-20220921151006302.png)
+
+
+
+### 4、Spring Boot原理
+
+Spring原理【Spring注解】、SpringMVC原理、自动配置原理、SpringBoot原理
+
+#### 4.1、SpringBoot的启动过程
+
+分析：`SpringApplication.run(Boot09HelloTestApplication.class, args);`的运行过程
+
+```java
+public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
+    //先创建，再运行
+    return (new SpringApplication(primarySources)).run(args);
+}
+```
+
+1. ***创建（new）SpringApplication***
+
+> + 给SpringApplication类保存一信息
+>
+>   如当前web模式是响应式还是原生servlet，资源加载器，主程序类们等
+>
+> + 创建BootStrapper启动类，来源为：所有包类路径下`/META-INF/spring.factories`中的`org.springframework.boot.Bootstrapper`的 属性 <font color='red'>（现版本已经删掉）</font>
+>
+> + 设置初始化器**ApplicationContextInitializer**，`getSpringFactoriesInstances()`方法去所有包的类路径下`/META-INF/spring.factories`中查找==`org.springframework.context.ApplicationContextInitializer`==的属性
+>
+>   > 找到了七个，5个在spring-boot包，2个在spring的autoconfiguration包下
+>   >
+>   > ```properties
+>   > # spring-boot-autoconfiguration
+>   > org.springframework.context.ApplicationContextInitializer=\
+>   > org.springframework.boot.autoconfigure.SharedMetadataReaderFactoryContextInitializer,\
+>   > org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener
+>   > 
+>   > # spring-boot
+>   > org.springframework.context.ApplicationContextInitializer=\
+>   > org.springframework.boot.context.ConfigurationWarningsApplicationContextInitializer,\
+>   > org.springframework.boot.context.ContextIdApplicationContextInitializer,\
+>   > org.springframework.boot.context.config.DelegatingApplicationContextInitializer,\
+>   > org.springframework.boot.rsocket.context.RSocketPortInfoApplicationContextInitializer,\
+>   > org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer
+>   > 
+>   > ```
+>
+> + 设置监听器**ApplicationListener**，`getSpringFactoriesInstances()`方法去所有包的类路径下`/META-INF/spring.factories`中查找==`org.springframework.context.ApplicationListener`==的属性
+>
+>   > 找到了11个，10个在spring-boot包，1个在spring的autoconfiguration包下
+>
+> + 设置当前项目主程序所在的类
+>
+>   > 原理：程序运行到当前代码处，内存中 所有堆栈类从上向下遍历，如果哪个类有main方法那么这个类就是主程序所在的类
+>   >
+>   > ![image-20220921155806657](img\image-20220921155806657.png)
+
+
+
+2.***运行（run）SpringApplication***
 
 
 
@@ -7650,6 +7999,7 @@ public class Worker implements Person{
 
 
 
+#### 4.2、Application Events and Listeners
 
 
 
@@ -7657,9 +8007,7 @@ public class Worker implements Person{
 
 
 
-
-
-
+#### 4.3、ApplicationRunner 与 CommandLineRunner
 
 
 
