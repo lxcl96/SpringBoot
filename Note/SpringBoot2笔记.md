@@ -7993,21 +7993,359 @@ public static ConfigurableApplicationContext run(Class<?>[] primarySources, Stri
 
 2.***运行（run）SpringApplication***
 
++ 创建并启动StopWatch 启停监听器，并在内部记录下启动的时间（单位：纳秒）
+
++ 创建引导上下文Context环境 **CreateBootstrapContext **，并获取到所有之前的 **bootstrappers(Spring.factories配置的) 挨个执行** intitialize() 来完成对引导启动器上下文环境设置<font color='red'>（现版本已经删掉）</font>
+
++ 让当前应用进入**headless**模式，即：java.awt.headless （true）
+
++ 获取当前应用的所有运行监听器==**SpringApplicationRunListener**，**还是从spring.factories中找SpringApplicationRunListener类型的**==（正常为1个：EventPublishingRunListener时间发布监听器，用于监听事件发布的）
+
+  > ```java
+  > return new SpringApplicationRunListeners(logger,
+  >     //getSpringFactoriesInstances 看到他别犹豫，spring.factories
+  >       getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
+  > ```
+
++ 遍历上一步的所有的运行监听器==**SpringApplicationRunListener**，挨个调用`starting`方法==启动监听器。
+
++ 封装main参数即命令行启动参数到**ApplicationArguments**
+
++ 准备应用需要的环境 `prepareEnvironment`
+
+  > + 获取或创建基础环境信息：**StandardServletEnvironment（原生Servlet应用）**
+  > + 配置基础环境信息，**配置的就是前面的ApplicationArguments**
+  >   1. 环境变量添加类型转换服务（如：string转int等，为了将配置文件的进行转换）
+  >   2. 读取配置文件属性（包括servlet的iniitparam），添加到环境变量
+  >   3. 激活Spring boot的profile对应的环境（`application-[env].yaml`）
+  > + 遍历调用运行监听器==**SpringApplicationRunListener**的**environmentPrepared**方法==，通知所有的监听器当前应用运行所需要的环境environment已经准备就绪（用于创建ioc容器）。
+  > + 把当前环境environment绑定到springApplication中
+  > + 如果不是用户自定义的环境，将当前获取的环境进行类型转换（convertEnvironmentIfNecessary）
+  > + 将`ConfigurationPropertySources`附加到environment，用于解析文件
+
++ 配置一些需要忽略的bean信息，就是设置系统参数 `System.setProperty(spring.beaninfo.ignore,true)`
+
++ 打印spring的banner图标
+
+  ![image-20220922135956215](img\image-20220922135956215.png)
+
++ <font color='red'>***创建ioc容器即：ApplicationContext（Spring的熟悉流程）***</font>
+
+  > 根据当前应用类型**webApplicationType**创建一个空的，webioc容器
+  >
+  > | **原生Servlet类型** | webioc容器     | **AnnotationConfigServletWebServerApplicationContext**  |
+  > | ------------------- | -------------- | ------------------------------------------------------- |
+  > | **响应式Reactive**  | **webioc容器** | **AnnotationConfigReactiveWebServerApplicationContext** |
+  > | **都不是**          | **ioc容器**    | **AnnotationConfigApplicationContext**                  |
+
++ 记录**SpringBootExceptionReporter**类，还是从**spring.factories**中读取
+
++ 配置ApplicationContext的属性信息（就是ioc容器） `prepareContext`
+
+  > 1. 将上面创建好的环境信息保存到ioc容器中
+  >
+  > 2. `postProcessApplicationContext(context)`
+  >
+  > 3. **`applyInitializers(context)`**
+  >
+  >    + 获取**第一大步中创建**的**ApplicationContextInitializer（spring.factories的）**
+  >
+  >    + 遍历所有ApplicationContextInitializer，**调用`initialize()`初始化方法，对ioc容器进行初始化扩展**
+  >
+  >      > 如：设置一些额外属性啊，ioc容器加一些后置处理器，BeanFactory，BeanFactory后置处理器等等
+  >
+  > 4. **`listeners.contextPrepared(context);`**
+  >
+  >    + 获取**第一大步中创建**的**SpringApplicationRunListener（spring.factories的）**
+  >
+  >    + 遍历所有的==SpringApplicationRunListener，**调用contextPrepared()方法**==
+  >
+  >      > 因为此处就只有一个**EventPublishingRunListener**监听器，所以此处只有一个作用：**使用多播器，发布ApplicationContextInitializedEvent事件 ，表示ioc容器准备完成**
+  >
+  > 5. 默认启动logStartupInfo，则控制台/日志打印日志
+  >
+  >    + 打印程序启动信息（进程id，hostname，程序位置等等）
+  >    + 打印profile环境信息，如果没指定默认为default
+  >
+  > 6. 使用ioc的Beanfactory，**将命令行启动参数的对象ApplicationArguments加入到ioc容器中**
+  >
+  > 7. 使用ioc的Beanfactory，**将Banner（打印spring图标那个）加入到ioc容器中**
+  >
+  > 8. 如果ioc的BeanFactory是**DefaultListableBeanFactory（默认）**类型，**则默认不允许修改bean的定义信息**`setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding)`
+  >
+  > 9. **如果是懒加载，给ioc容器添加懒加载的后置处理器 LazyInitializationBeanFactoryPostProcessor**
+  >
+  > 10. **将主程序(包含main方法的)加载到ioc容器中**
+  >
+  >     > 包括一些其他属性，主程序所在的目录等。方便下面进行包扫描（主程序所在的包）
+  >
+  > 11. ==**listeners.contextLoaded(context)**==
+  >
+  >     + 遍历上面所有的**SpringApplicationRunListener**，将所有的Linstener加入到ioc容器中（如果有监听器实现了`ApplicationContextAware`接口，就把ioc容器加入到该listener中）
+  >
+  >       > 实现了`ApplicationContextAware`接口就能拿到ioc容器，，严谨！👍
+  >
+  >     + 使用**事件多播器Multicaster**，将**应用准备完成事件ApplicationPreparedEvent发布出去，方便listener捕获处理（此阶段还没创建bean但是bean定义信息已被加载）**
+
++ <font color='red'>***刷新ioc容器 `refreshContext(context)`即：ApplicationContext（Spring核心源码）***</font>
+
+  > 此阶段还没创建bean但是bean定义信息已被加载，**作用：创建容器所有组件**
+
++ `afterRefresh(context, applicationArguments)`容器刷新完成后的工作
+
+  > 默认是空方法，留给开发者作扩展用的
+
++ `stopWatch.stop()` 记录下停止的时间（单位：纳秒）【看看run过程耗费了多少时间】
+
++ 控制台打印Application启动成功，和花费的秒数
+
++ ==**listeners.started(context);**==再次调用所有的监听器（默认只有：**EventPublishingRunListener**，还是根据spring.factories中来的）
+
+  > 再次使用多播器multicaster，**发布应用Application启动成功事件ApplicationStartedEvent**，让一下listener捕获处理
+
++ `callRunners(context, applicationArguments)`调用所有的Runners
+
+  > 获取ioc容器中==**所有ApplicationRunner**类型和**CommandLineRunner**类型的组件==，按照Ordered接口排序，然后遍历调用Runer方法。
+  >
+  > **目的：**用于应用启动做一次性的事情
+
++ **【不一定执行】如果发生异常，调用`handleRunFailure()` 里面还调用SpringApplicationRunListeners**
+
+  > + 再次使用多播器multicaster，**发布ExitCodeEvent事件** 
+  > + 执行==**listeners.failed(context, exception)**方法==，遍历调用所以listener的**callFailedListener()**方法====
+
++ ==**listeners.running(context)**==
+
+  > + 再次使用多播器multicaster，**发布ApplicationReadyEvent事件**
+
++ **【不一定执行，和上上一步完全一样】如果发生异常，调用`handleRunFailure()` 里面还调用SpringApplicationRunListeners** 
+
++ 返回ioc容器
+
+<table>
+  <tr>
+      <td bgcolor=#FF4500>注意上面的创建(new)和运行(run)的linstener，包含两种：</br>
+    SpringApplicationRunListener 是spring.factories中的</br>
+	ApplicationListener  是spring中的
+</td>
+</tr>
+</table>
 
 
 
+***核心接口：***
 
+```java
+public interface SpringApplicationRunListener {
 
+   default void starting() {}
+   default void environmentPrepared(ConfigurableEnvironment environment) {}
+   default void contextPrepared(ConfigurableApplicationContext context) {}
+   default void contextLoaded(ConfigurableApplicationContext context) {}
+   default void started(ConfigurableApplicationContext context) {}
+   default void running(ConfigurableApplicationContext context) {}
+   default void failed(ConfigurableApplicationContext context, Throwable exception) {}
+}
+```
 
 #### 4.2、Application Events and Listeners
 
+详细了解Spring Boot启动每个过程**listener发布事件的时机**
+
+官方文档：[features.html#boot-features-application-events-and-listeners](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-application-events-and-listeners)
+
+> ==实现自定义的：==
+>
+> > **ApplicationContextInitializer**
+> >
+> > **ApplicationListener**
+> >
+> > **SpringApplicationRunListener**
+> >
+> > **ApplicationRunner** ：用于应用启动做一次性的事情
+> >
+> > **CommandLineRunner **：用于应用启动做一次性的事情
+>
+> ==用于监听springboot启动过程的每一步骤==
+
+***创建自己的 ApplicationContextInitializer***
+
+```java
+public class MyApplicationContextInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+    @Override
+    public void initialize(ConfigurableApplicationContext applicationContext) {
+        System.out.println("MyApplicationContextInitializer   ...initialize...");
+    }
+}
+```
+
+***创建自己的 ApplicationListener***
+
+```java
+public class MyApplicationListener implements ApplicationListener<ApplicationEvent> {
+    @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        System.out.println("MyApplicationListener ...onApplicationEvent..");
+        System.out.println(event.getClass());
+    }
+}
+```
+
+***创建自己的 SpringApplicationRunListener***
+
+```java
+public class MySpringApplicationRunListener implements SpringApplicationRunListener {
+    
+    private SpringApplication springApplication;     
+    //需要一个有参构造器，且必须是这两个参数
+    public MySpringApplicationRunListener(SpringApplication application, String[] args) {
+        this.springApplication=application;
+        System.out.println("MySpringApplicationRunListener  ...instance...");
+    }
+
+    @Override
+    public void starting() {
+        System.out.println("MySpringApplicationRunListener  ... starting ..." );
+    }
+
+    @Override
+    public void environmentPrepared(ConfigurableEnvironment environment) {
+        System.out.println("MySpringApplicationRunListener  ... environmentPrepared ..." );
+    }
+
+    @Override
+    public void contextPrepared(ConfigurableApplicationContext context) {
+        System.out.println("MySpringApplicationRunListener  ... contextPrepared ..." );
+    }
+
+    @Override
+    public void contextLoaded(ConfigurableApplicationContext context) {
+        System.out.println("MySpringApplicationRunListener  ... contextLoaded ..." );
+    }
+
+    @Override
+    public void started(ConfigurableApplicationContext context) {
+        System.out.println("MySpringApplicationRunListener  ... started ..." );
+    }
+
+    @Override
+    public void running(ConfigurableApplicationContext context) {
+        System.out.println("MySpringApplicationRunListener  ... running ..." );
+    }
+
+    @Override
+    public void failed(ConfigurableApplicationContext context, Throwable exception) {
+        System.out.println("MySpringApplicationRunListener  ... failed ..." );
+    }
+}
+```
+
+***创建自己的 ApplicationRunner***
+
+```java
+@Component
+public class MyApplicationRunner implements ApplicationRunner {
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        System.out.println("MyApplicationRunner ... run ...");
+    }
+}
+```
+
+***创建自己的 CommandLineRunner***
+
+```java
+@Component
+public class MyCommandLineRunner implements CommandLineRunner {
+    @Override
+    public void run(String... args) throws Exception {
+        System.out.println("MyCommandLineRunner    ...run..");
+    }
+}
+```
 
 
 
+***监听器和初始化器放入：类路径下/META-INF/spring.factories***
+
+```properties
+org.springframework.boot.SpringApplicationRunListener=\
+  com.ly.boot.listener.MySpringApplicationRunListener
+
+
+org.springframework.context.ApplicationContextInitializer=\
+  com.ly.boot.listener.MyApplicationContextInitializer
+
+
+org.springframework.context.ApplicationListener=\
+  com.ly.boot.listener.MyApplicationListener
+```
 
 
 
-#### 4.3、ApplicationRunner 与 CommandLineRunner
+***启动测试：***
+
+> ```java
+> MySpringApplicationRunListener  ...instance...
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.context.event.ApplicationStartingEvent
+> MySpringApplicationRunListener  ... starting ...
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent
+> MySpringApplicationRunListener  ... environmentPrepared ...
+> 
+>   .   ____          _            __ _ _
+>  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+> ( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+>  \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+>   '  |____| .__|_| |_|_| |_\__, | / / / /
+>  =========|_|==============|___/=/_/_/_/
+>  :: Spring Boot ::        (v2.3.7.RELEASE)
+> 
+> MyApplicationContextInitializer   ...initialize...
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.context.event.ApplicationContextInitializedEvent
+> MySpringApplicationRunListener  ... contextPrepared ...
+> 2022-09-22 16:42:17.241  INFO 12224 --- [           main] com.ly.boot.Boot09HelloTestApplication   : Starting Boot09HelloTestApplication on DESKTOP-O5VMOIK with PID 12224 (D:\JavaWork\SpringBoot\boot-09-hello-test\target\classes started by admin in D:\JavaWork\SpringBoot\boot-09-hello-test)
+> 2022-09-22 16:42:17.245  INFO 12224 --- [           main] com.ly.boot.Boot09HelloTestApplication   : No active profile set, falling back to default profiles: default
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.context.event.ApplicationPreparedEvent
+> MySpringApplicationRunListener  ... contextLoaded ...
+> 2022-09-22 16:42:18.969  INFO 12224 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+> 2022-09-22 16:42:18.980  INFO 12224 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+> 2022-09-22 16:42:18.981  INFO 12224 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.41]
+> 2022-09-22 16:42:19.068  INFO 12224 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+> 2022-09-22 16:42:19.069  INFO 12224 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1748 ms
+> 2022-09-22 16:42:19.285  INFO 12224 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+> 2022-09-22 16:42:19.470  INFO 12224 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.context.event.ContextRefreshedEvent
+> 2022-09-22 16:42:19.485  INFO 12224 --- [           main] com.ly.boot.Boot09HelloTestApplication   : Started Boot09HelloTestApplication in 2.945 seconds (JVM running for 4.485)
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.context.event.ApplicationStartedEvent
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.availability.AvailabilityChangeEvent
+> MySpringApplicationRunListener  ... started ...
+> MyApplicationRunner ... run ...
+> MyCommandLineRunner    ...run..
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.context.event.ApplicationReadyEvent
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.availability.AvailabilityChangeEvent
+> MySpringApplicationRunListener  ... running ...
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.boot.availability.AvailabilityChangeEvent
+> MyApplicationListener ...onApplicationEvent..
+> class org.springframework.context.event.ContextClosedEvent
+> 2022-09-22 16:45:42.159  INFO 12224 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+> 
+> Process finished with exit code 130
+> 
+> ```
+>
+> 
 
 
 
