@@ -1,5 +1,3 @@
-
-
 [TOC]
 
 
@@ -34,7 +32,7 @@
 
 + webflux构建异步数据流方式，实现响应式编程
 
-  <img src="img/响应式开发和servlet开发.png" style="zoom:80%;" />
+  <img src="img/响应式开发和servlet开发.png" style="zoom:90%;" />
 
 ## 02 Spring5内部源码设计
 
@@ -218,7 +216,7 @@ public class HelloController {
 
 ==获取配置文件优先顺序：==
 
-![image-20220627164554967](.\img\springboot配置文件加载顺序.png)
+<img src="img\springboot配置文件加载顺序.png" style="zoom:100%;" />
 
 官方文档：[Common Application Properties (spring.io)](https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties)
 
@@ -397,11 +395,13 @@ java -jar xxx.jar
   >
   > 所有自动配置均在`spring-boot-autoconfigure`包中配置
   >
-  > ![image-20220629143743248](.\img\image-20220629143743248.png)
+  > <img src="img\image-20220629143743248.png" style="zoom:100%;" />
+  >
+  > 
   >
   > ***配置了所有常用功能：***
   >
-  > ![image-20220727114922554](.\img\image-20220727114922554.png)
+  > <img src="img\image-20220727114922554.png" style="zoom:100%;" />
   >
   > ***如果点进去发现是红色的，或者点不进去的：***说明当前没有启动那个场景，如果需要自己在pom中设置对应场景依赖即可
 
@@ -564,7 +564,7 @@ public class Configuration {...}
 
 ​	条件装配：满足@Conditional指定条件的，则进行组件注入
 
-![image-20220630094518376](.\img\image-20220630094518376.png)
+<img src="img\image-20220630094518376.png" style="zoom:100%;" />
 
 ***条件注解标注在方法上：***
 
@@ -746,9 +746,7 @@ public class HelloController {
 
 springBoot自动集成了json，所以自动转化为json对象了
 
-![image-20220630105144783](.\img\image-20220630105144783.png)
-
-
+<img src="img\image-20220630105144783.png" style="zoom:100%;" />
 
 ##### ②、@EnableConfigurationProperties + @ConfigurationProperties 适用于第三方类
 
@@ -898,7 +896,7 @@ public @interface EnableAutoConfiguration {
 >
 > 注册主程序所在包(包括子包)下所有组件导入/注册到IOC容器中
 >
-> ![image-20220630135056922](.\img\image-20220630135056922.png)
+> <img src="img\image-20220630135056922.png" style="zoom:100%;" />
 >
 > ② *** @EnableAutoConfiguration 内的 @Import({AutoConfigurationImportSelector.class})*** 
 >
@@ -909,20 +907,20 @@ public @interface EnableAutoConfiguration {
 > 		if (!isEnabled(annotationMetadata)) {
 > 			return EMPTY_ENTRY;
 > 		}
->         //获取注解@EnableAutoConfiguration属性值 exclude 和 excludeName
+>      //获取注解@EnableAutoConfiguration属性值 exclude 和 excludeName
 > 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
->         //获取所有等待自动配置的 候选人共144个
+>      //获取所有等待自动配置的 候选人共144个
 > 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
->         //去掉重复的类名
+>      //去掉重复的类名
 > 		configurations = removeDuplicates(configurations);
->         //根据属性值 exclude 和 excludeName获取排除的类名，默认为null
+>      //根据属性值 exclude 和 excludeName获取排除的类名，默认为null
 > 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
 > 		checkExcludedClasses(configurations, exclusions);
->         //从默认144个自动配置候选人中，删除被排出的exclude 和 excludeName的值
+>      //从默认144个自动配置候选人中，删除被排出的exclude 和 excludeName的值
 > 		configurations.removeAll(exclusions);
->         //根据当前设置的启动器spring-boot-starter-web，筛选出需要用到的进行自动配置（24个）
+>      //根据当前设置的启动器spring-boot-starter-web，筛选出需要用到的进行自动配置（24个）
 > 		configurations = getConfigurationClassFilter().filter(configurations);
->         //开启自动配置导入事件Evenr
+>      //开启自动配置导入事件Evenr
 > 		fireAutoConfigurationImportEvents(configurations, exclusions);
 > 		return new AutoConfigurationEntry(configurations, exclusions);
 > 	}
@@ -935,20 +933,20 @@ public @interface EnableAutoConfiguration {
 >   >
 >   > ```java
 >   > public static ImportCandidates load(Class<?> annotation, ClassLoader classLoader) {
->   >     Assert.notNull(annotation, "'annotation' must not be null");
->   >     ClassLoader classLoaderToUse = decideClassloader(classLoader);
->   >     //获取配置文件路径
->   >     String location = String.format("META-INF/spring/%s.imports", annotation.getName());
->   >     Enumeration<URL> urls = findUrlsInClasspath(classLoaderToUse, location);
->   >     ArrayList autoConfigurations = new ArrayList();
+>   >  Assert.notNull(annotation, "'annotation' must not be null");
+>   >  ClassLoader classLoaderToUse = decideClassloader(classLoader);
+>   >  //获取配置文件路径
+>   >  String location = String.format("META-INF/spring/%s.imports", annotation.getName());
+>   >  Enumeration<URL> urls = findUrlsInClasspath(classLoaderToUse, location);
+>   >  ArrayList autoConfigurations = new ArrayList();
 >   > 
->   >     while(urls.hasMoreElements()) {
->   >         URL url = (URL)urls.nextElement();
->   >         //把配置文件内容加到 autoConfigurations
->   >         autoConfigurations.addAll(readAutoConfigurations(url));
->   >     }
+>   >  while(urls.hasMoreElements()) {
+>   >      URL url = (URL)urls.nextElement();
+>   >      //把配置文件内容加到 autoConfigurations
+>   >      autoConfigurations.addAll(readAutoConfigurations(url));
+>   >  }
 >   > 
->   >     return new ImportCandidates(autoConfigurations);
+>   >  return new ImportCandidates(autoConfigurations);
 >   > }
 >   > ```
 >   >
@@ -958,11 +956,11 @@ public @interface EnableAutoConfiguration {
 >   >
 >   > 结果为：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 >   >
->   > ![image-20220728103235383](.\img\image-20220728103235383.png)
+>   > <img src="img/image-20220728103235383.png" style="zoom:100%;" />
 >   >
 >   > 
 >   >
->   >  
+>   > 
 
 #### 3.2、按需加载上面144个配置类
 
@@ -974,7 +972,7 @@ public @interface EnableAutoConfiguration {
 >
 > 原理：
 >
-> 比如我们需要***amqp**的自动配置，则需要看对应目录下`xxxAutoConfiguration`类，该类上会有个条件
+> 比如我们需要**amqp**的自动配置，则需要看对应目录下`xxxAutoConfiguration`类，该类上会有个条件
 >
 > ```java
 > @AutoConfiguration
@@ -1003,11 +1001,11 @@ public @interface EnableAutoConfiguration {
 >
 > 属性名为`enabled`
 >
-> ![image-20220728112815190](D:\JavaWork\SpringBoot\Note\img\image-20220728112815190.png)
+> <img src="img\image-20220728112815190.png" style="zoom:100%;" />
 >
 > 如：我们pom文件中添加的`spring-boot-starter-web`启动器，默认就是tomcat
 >
-> ![image-20220728111222031](.\img\image-20220728111222031.png)
+> <img src="img\image-20220728111222031.png" style="zoom:100%;" /> 
 
 #### 3.3、修改默认配置
 
@@ -1065,7 +1063,7 @@ public CharacterEncodingFilter characterEncodingFilter() {
   > 
   > //对应application*.yml/yaml/properties配置文件中的 server开头的配置
   > ```
-  > ![image-20220728140345081](.\img\image-20220728140345081.png)
+  > <img src="img\image-20220728140345081.png" style="zoom:100%;" /> 
 
 + 生效的配置类就会给容器中自动注入相应组件，相当于自己配置
 
@@ -1203,11 +1201,11 @@ IDEA中新建项目/模块时使用
 
 + 新建工程或项目
 
-  ![image-20220728163908985](.\img\image-20220728163908985.png)
+  <img src="img\image-20220728163908985.png" style="zoom:100%;" />
 
 + 勾选需要的场景启动器
 
-  ![image-20220728164120041](.\img\image-20220728164120041.png)
+  <img src="img\image-20220728164120041.png" style="zoom:100%;" /> 
 
 ***
 
@@ -1360,7 +1358,7 @@ debug: true
     "properties": [
       { 
         "name": "yml.person.pet",
-        "type": "com.ly.boot.bean.Pet",//指定类型，不然总是当初String类型
+        "type": "com.ly.boot.bean.Pet",//指定类型，不然总是当成String类型
         "description": "Description for yml.person.pet."
       }
     ] }
@@ -1390,7 +1388,7 @@ debug: true
 
 ####    0、目录结构
 
-![image-20220805111418466](.\img\image-20220805111418466.png)
+<img src="img\image-20220805111418466.png" style="zoom:100%;" /> 
 
 #### 	1、引入依赖插件，目的：将webapp目录下所有资源放到META-INF/resources下
 
@@ -1496,17 +1494,17 @@ public class ModelAttributeController {
 
 访问`http://localhost:8080/model/hello`
 
-![image-20220805112953849](.\img\image-20220805112953849.png)
+<img src="img\image-20220805112953849.png" style="zoom:100%;" /> 
 
 #### 7、打jar包的目录结构
 
-![image-20220805113442771](.\img\image-20220805113442771.png)
+<img src="img\image-20220805113442771.png" style="zoom:100%;" /> 
 
 ***
 
 ### <font color='red'>***< 1、SpringMVC自动配置概览***</font>
 
-官方文档：==修改SpringMVC的组件的默认规则的三种方式：===
+官方文档：==修改SpringMVC的组件的默认规则的三种方式：==
 
 > Spring Boot provides auto-configuration for Spring MVC that **works well with most applications.(大多场景我们都无需自定义配置)**
 >
@@ -1531,19 +1529,19 @@ public class ModelAttributeController {
 > 
 >If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.9.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
 > 
->==**1、不用@EnableWebMvc注解。使用** `**@Configuration**` **+** `**WebMvcConfigurer**` **自定义规则**==
+>==**1、不用@EnableWebMvc注解。使用** `@Configuration` **+** `WebMvcConfigurer` **自定义规则**==
 > 
 >
 > 
 >If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
 > 
->==**2、声明** `**WebMvcRegistrations**` **改变默认底层组件**==
+>==**2、声明*`WebMvcRegistrations` **改变默认底层组件**==
 > 
 >
 > 
 >If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
 > 
->==**3、使用** `**@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration 全面接管SpringMVC**`==
+>==**3、使用** `@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration`全面接管SpringMVC==
 
 ### ***2、简单功能分析***
 
@@ -1553,7 +1551,7 @@ public class ModelAttributeController {
 
 只要静态资源存放在静态目录下，均可以直接访问。
 
-![image-20220801142247956](.\img\image-20220801142247956.png)
+<img src="img/image-20220801142247956.png" style="zoom:100%;" /> 
 
 ***原理：***静态映射 /**
 
@@ -1640,7 +1638,7 @@ spring:
 </dependency>
 ```
 
-![image-20220802102300192](.\img\image-20220802102300192.png)
+<img src="img\image-20220802102300192.png" style="zoom:100%;" /> 
 
 页面访问webjar：`http://localhost:8080/webjars/jquery/3.5.1/jquery.js`
 
@@ -2008,7 +2006,7 @@ public class MyConfig {
 
 > 发送的的请求是怎么匹配到对应的控制器Controller方法上的?
 
-![](.\img\image.png)
+<img src="img\image.png" style="zoom:100%;" />
 
 SpringMVC功能分析都从 org.springframework.web.servlet.DispatcherServlet-》doDispatch（）
 
@@ -2053,11 +2051,11 @@ protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Ex
 }
 ```
 
-![image-20220803110051319](.\img\image-20220803110051319.png)
+<img src="img\image-20220803110051319.png" style="zoom:100%;" /> 
 
 上图其中：`RequestMappingInfoHandlerMapping`映射专门用于处理`@RequestMapping`注解的，里面包含我们使用`@RequestMapping`关联的控制器方法
 
-![image-20220803110545940](.\img\image-20220803110545940.png)
+<img src="img\image-20220803110545940.png" style="zoom:100%;" /> 
 
 > ***所有的请求映射都在HandlerMapping中。***
 >
@@ -2284,7 +2282,7 @@ public class MyConfig implements WebMvcConfigurer {
 
 均对应controller方法：`@RequestMapping("/cars/{path}")`
 
-![image-20220804170033466](.\img\image-20220804170033466.png)
+<img src="img\image-20220804170033466.png" style="zoom:100%;" /> 
 
 ```java
 /**
@@ -2318,7 +2316,7 @@ public Map<String,Object> getMatrixVariable(@MatrixVariable("low") Integer low,
 
 请求链3：`http://localhost:8080/boss/1;age=20/2;age=10`
 
-![image-20220804171440720](.\img\image-20220804171440720.png)
+<img src="img\image-20220804171440720.png" style="zoom:100%;" /> 
 
 ```java
 @RequestMapping("/boss/{bossId}/{empId}")
@@ -2515,7 +2513,7 @@ public String testParam(Map<String,Object> map,
 >   > }
 >   > ```
 >   >
->   > ![image-20220809141309469](.\img\image-20220809141309469.png)
+>   > <img src="img\image-20220809141309469.png" style="zoom:100%;" /> 
 >
 > + 参数`request`是被`ServletRequestMethodArgumentResolver`解析
 >
@@ -2555,7 +2553,7 @@ public String testParam(Map<String,Object> map,
 > }
 > ```
 >
-> ![image-20220808151401368](.\img\image-20220808151401368.png)
+> <img src="img\image-20220808151401368.png" style="zoom:100%;" /> 
 
 ##### 1.4、自定义对象参数（POJO类，普通JavaBean）
 
@@ -2650,7 +2648,7 @@ public Person testPojoParam(Person person) {
 >   ph.setValue(valueToApply);
 >   ```
 >
-> ![image-20220809163620157](\img\image-20220809163620157.png)
+> <img src="img\image-20220809163620157.png" style="zoom:100%;" /> 
 >
 > 注：此处的转换器convert，就是前面**< 1、SpringMVC自动配置概览***中提到的
 
@@ -2681,7 +2679,7 @@ public Person testPojoParam(Person person) {
 }
 ```
 
-> ![image-20220810141518323](.\img\image-20220810141518323.png)
+> <img src="img\image-20220810141518323.png" style="zoom:100%;" /> 
 
 ***解决方法：自定义转换器***
 
@@ -2729,7 +2727,7 @@ public class MyConfig implements WebMvcConfigurer {
 
 ==***HandlerMethodArgumentResolver接口的所有实现类都默认支持一种参数解析，所以实际可用的参数获取方法也是这些***==
 
-![image-20220808161735648](\img\image-20220808161735648.png)
+<img src="img\image-20220808161735648.png" style="zoom:100%;" /> 
 
 > 针对`@PathVariable,@RequestHeader,@RequestParam,@CookieValue,@RequestBody,@MatrixVariable`等。
 >
@@ -2741,7 +2739,7 @@ public class MyConfig implements WebMvcConfigurer {
 >
 > + `HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());`获取处理器适配器Adapter，通过此适配器才可以调用控制器方法`getCar(..)`
 >
->   ![](\img\image-20220808140744448.png)
+>   <img src="img\image-20220808140744448.png" style="zoom:100%;" />
 >
 >   > 注：继承`AbstractHandlerMethodAdapter`抽象类的，我们可以自定义Adapter来处理特定方法。
 >
@@ -2760,24 +2758,24 @@ public class MyConfig implements WebMvcConfigurer {
 >   }
 >   ```
 >
->   ![image-20220808150232410](.\img\image-20220808150232410.png)
+>   <img src="img\image-20220808150232410.png" style="zoom:100%;" /> 
 >
 >   ***参数解析器HandlerMethodArgumentResolver实现的接口及解析过程：***
 >
 >   ```java
 >   public interface HandlerMethodArgumentResolver {
->                                                 
+>                                                     
 >      /*
 >       supportsParameter()判断是否支持指定参数的解析
 >       如果支持
 >       resolveArgument()解析参数
 >       */
 >      boolean supportsParameter(MethodParameter parameter);
->                                                     
+>                                                         
 >      @Nullable
 >      Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 >            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
->                                                 
+>                                                     
 >   }
 >   ```
 >
@@ -2790,7 +2788,7 @@ public class MyConfig implements WebMvcConfigurer {
 >   Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
 >   	//里面1、获取到解析后的参数
 >   	Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
->   	                                              
+>   	                                                  
 >   	//里面2、执行控制器方法
 >   	return doInvoke(args);
 >   ```
@@ -2806,7 +2804,7 @@ public class MyConfig implements WebMvcConfigurer {
 >            //如果没有 直接返回
 >           return EMPTY_ARGS;
 >        }
->                                                                                                 
+>                                                                                                         
 >        Object[] args = new Object[parameters.length];
 >        for (int i = 0; i < parameters.length; i++) {
 >           MethodParameter parameter = parameters[i];
@@ -2815,7 +2813,7 @@ public class MyConfig implements WebMvcConfigurer {
 >           if (args[i] != null) {
 >              continue;
 >           }
->                                                                                                        
+>                                                                                                                
 >            /*
 >            HandlerMethodArgumentResolver接口的两步骤：
 >            		1、supportsParameter 是否支持
@@ -2851,7 +2849,7 @@ public class MyConfig implements WebMvcConfigurer {
 >     		//获取参数解析器  同上面的this.resolvers.supportsParameter(parameter)
 >     		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
 >     		...
->                                                                                                             
+>                                                                                                                     
 >             //正式解析 [普通的请求参数如@PathVariable，是被UrlPatchHelper解码请求链地址，并把参数放在request域中，直接取request域取值]
 >     		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 >     	}
@@ -2860,7 +2858,7 @@ public class MyConfig implements WebMvcConfigurer {
 
 ### ***4、响应数据与内容协商***
 
-![image-20220810150001330](.\img\image-20220810150001330.png)
+<img src="img\image-20220810150001330.png" style="zoom:100%;" /> 
 
 
 
@@ -2884,13 +2882,13 @@ public class MyConfig implements WebMvcConfigurer {
 
 + <font color='red'>1、挨个遍历所有的处理器`supportsReturnType()`，看看是否支持当前返回类型的解析</font>
 + <font color='red'>2、`handleReturnValue()`处理返回值</font>
-+ ![image-20220810200855461](\img\image-20220810200855461.png)
++ <img src="img\image-20220810200855461.png" style="zoom:100%;" /> 
 
 ***
 
 即返回值Json数据的响应原理：*返回值解析器*，在进行参数解析前会把参数解析器`argumentResolvers`和返回值处理器`returnValueHandlers`配置好。
 
-![image-20220810152418967](.\img\image-20220810152418967.png)
+<img src="img\image-20220810152418967.png" style="zoom:100%;" /> 
 
 > 说明可以和参数解析器argumentResolvers，类型转换器convert一样自己配置
 
@@ -2962,7 +2960,7 @@ handler.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
 >
 > 就是下面的Aceept：后面的
 >
-> ![image-20220810202601904](.\img\image-20220810202601904.png)
+> <img src="img\image-20220810202601904.png" style="zoom:100%;" /> 
 >
 > `其中q表示为权重，权重值约定表示优先级越高`，所有html，xhtml+xml，xml权重为0.9优先级最高
 >
@@ -3019,7 +3017,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 ***SpringMVC默认的消息转化器，及其支持的类型***
 
-![image-20220810211231880](.\img\image-20220810211231880.png)
+<img src="img\image-20220810211231880.png" style="zoom:100%;" /> 
 
 ***消息转换器messageConverter作用：***看是否支持此class类型的对象，转化为MediaType类型的数据
 
@@ -3051,7 +3049,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
 + 发送请求`http://localhost:8080/test/person`
 
-  ![image-20220816134729955](.\img\image-20220816134729955.png)
+  <img src="img\image-20220816134729955.png" style="zoom:100%;" /> 
 
 ##### 2.2、返回json
 
@@ -3252,7 +3250,7 @@ for (MediaType mediaType : mediaTypesToUse) {
 
   > 协商策略方法有很多，默认只加载请求头策略`HeaderContentNegotiationStrategy.class`
   >
-  > ![image-20220816153436862](.\img\image-20220816153436862.png)
+  > <img src="img\image-20220816153436862.png" style="zoom:100%;" /> 
 
 + 根据ioc容器中所有的messageConverter消息转换器看看，谁能够处理返回类型为Person的，并将其记录将Person处理后的类型
 
@@ -3261,13 +3259,13 @@ for (MediaType mediaType : mediaTypesToUse) {
   List<MediaType> producibleTypes = getProducibleMediaTypes(request, valueType, targetType);
   ```
 
-  ![image-20220816145251507](\img\image-20220816145251507.png)
+  <img src="img\image-20220816145251507.png" style="zoom:100%;" /> 
 
   > 导入了jackSon的xml包，会自动加入到ioc容器中
 
   处理后（可用于返回）的数据类型总和：
 
-  ![image-20220816145410385](\img\image-20220816145410385.png)
+  <img src="img\image-20220816145410385.png" style="zoom:100%;" /> 
 
 + 客户端只能接受`application/xhtml+xml`1种格式，但是服务器却可以产生10种数据格式。则此时就需要找到最佳匹配
 
@@ -3284,7 +3282,7 @@ for (MediaType mediaType : mediaTypesToUse) {
   }
   ```
 
-  ![image-20220816145958881](.\img\image-20220816145958881.png)
+  <img src="img\image-20220816145958881.png" style="zoom:100%;" /> 
 
 + 客户端接收`application/xhtml+xml`格式，服务器最优匹配格式`application/xhtml+xml`，则接下来就是看看哪个消息转换器可以将`Person`类型，转化成`application/xhtml+xml`类型
 
@@ -3415,7 +3413,7 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 >
 > + 发送请求带对应的媒体类型MediaType就会被我们自己写的messageConverter解析【内容协商】
 >
->   ![image-20220817144724759](.\img\image-20220817144724759.png)
+>   <img src="img\image-20220817144724759.png" style="zoom:100%;" /> 
 
 ##### ==***2.6、自定义MessageConverter(浏览器请求参数方式format=xxxx)***==
 
@@ -3456,17 +3454,17 @@ for (HttpMessageConverter<?> converter : this.messageConverters) {
 >
 >   > ***原理：***请求参数`format=xxx`解析策略`ParameterContentNegotiationStrategy.class`中，有个map集合用来报错支持媒体类型MediaType格式（默认只支持json），我们在配置类中手动加上自定义的媒体类型`application/x-any`，当我们浏览器发送这条请求时就会被接受处理，然后后面在进行最合适的返回类型匹配上用到（我们自己写的messageConverter专门用于处理application/x-any的消息处理器就会工作了）
 >   >
->   > ![image-20220817154512834](.\img\image-20220817154512834.png)
+>   > <img src="img\image-20220817154512834.png" style="zoom:100%;" /> 
 >
 > + 发送请求带对应的媒体类型MediaType就会被我们自己写的messageConverter解析【内容协商】
 >
->   ![image-20220817152648976](.\img\image-20220817152648976.png)
+>   <img src="img\image-20220817152648976.png" style="zoom:100%;" /> 
 
 ### ***5、视图解析与模板引擎***
 
 ***SpringBoot默认不支持jsp，参考：`0、SpringBoot下jsp和html混用并打包为jar包`***
 
-![image-20220822151743189](.\img\image-20220822151743189.png)
+<img src="img\image-20220822151743189.png" style="zoom:100%;" /> 
 
 #### 5.1、模板引擎-Thymeleaf
 
@@ -3601,7 +3599,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
 ##### 6、属性优先级
 
-![image-20220819133220955](.\img\image-20220819133220955.png)
+<img src="img\image-20220819133220955.png" style="zoom:100%;" /> 
 
 #### 5.2、thymeleaf的使用
 
@@ -3751,7 +3749,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >    }
 >    ```
 >
->    > ![image-20220822154243350](\img\image-20220822154243350.png)
+>    > <img src="img\image-20220822154243350.png" style="zoom:100%;" />
 >    >
 >    > 注：第一个内容协商视图解析器`ContentNegotiatingViewResolver`包含其余四个解析器，实际解析还是从下面4个解析器顺序遍历尝试解析返回值
 >    >
@@ -3855,7 +3853,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
 实现接口`HandlerInterceptor`的组件，三个方法的执行顺序如下：
 
-![image-20220823100935520](\img\image-20220823100935520.png)
+<img src="img\image-20220823100935520.png" style="zoom:100%;" /> 
 
 #### ***6.1、使用步骤：***
 
@@ -3936,7 +3934,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 >   >      mvc:
 >   >        # 默认是 /**
 >   >        static-path-pattern: /staticResource/**  #这样以后前端的所有页面必须加上staticResource才能访问，拦截路径只要排除 /staticResource/**即可
->   >                                                        
+>   >                                                              
 >   >        # 例子： <link th:href="@{/staticResource/css/style.css}" rel="stylesheet">
 >   >    ```
 
@@ -3946,7 +3944,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
  以`http://localhost:8080/basic_table`请求为例：
 
-![image-20220823162612996](.\img\image-20220823162612996.png)
+<img src="img\image-20220823162612996.png" style="zoom:100%;" /> 
 
 + DIspatcherServlet接收请求，根据请求路径查找到对应的控制器方法handler
 
@@ -3955,7 +3953,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
   //不仅找到了对应的controller方法，而且找到了所有的拦截器 即HandlerExecutionChain
   ```
 
-  ![image-20220823154817139](.\img\image-20220823154817139.png)
+  <img src="img\image-20220823154817139.png" style="zoom:100%;" /> 
 
 + DispatcherServlet在执行handler方法前，循环**正序**调用所有拦截器的**pre**方法，如果有一个拦截器返回false，则直接返回（后面的都不执行了）
 
@@ -4033,7 +4031,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 > Accept:image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
 > ```
 >
-> ![image-20220823160756956](.\img\image-20220823160756956.png)
+> <img src="img\image-20220823160756956.png" style="zoom:100%;" /> 
 
 ### ***7、文件上传***
 
@@ -4065,7 +4063,7 @@ th:if="${not #lists.isEmpty(prod.comments)}">view</a>
 
 > ***注意：***form标签必须加上 enctype属性，否则传递的只是文件名
 >
-> ![image-20220824094157753](.\img\image-20220824094157753.png)
+> <img src="img\image-20220824094157753.png" style="zoom:100%;" /> 
 
 #### 2、控制器Controller方法
 
@@ -4207,7 +4205,7 @@ public class FileTool {
   >
   >   ```java
   >   return this.multipartResolver.resolveMultipart(request);
-  >                               
+  >                                   
   >   //所谓解析请求，也就是把请求重新包装一下
   >   @Override
   >   public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
@@ -4217,15 +4215,15 @@ public class FileTool {
   >
   >   解析后得到的`MultiValueMap<String, MultipartFile>`类型，里面是根据文件类型划分的map集合，普通的参数则放在multipartParameterNames中
   >
-  >   ![image-20220830161628821](\img\image-20220830161628821.png)
+  >   <img src="img\image-20220830161628821.png" style="zoom:100%;" /> 
   >
-  >   ![image-20220830162043828](.\img\image-20220830162043828.png)
+  >   <img src="img\image-20220830162043828.png" style="zoom:100%;" /> 
   >
   >   
   >
   >   <font color='red'>注意：请求被接受是已经被tomcat处理保存了，看类名</font>
   >
-  >   ![image-20220830161404511](.\img\image-20220830161404511.png)
+  >   <img src="img\image-20220830161404511.png" style="zoom:100%;" /> 
 
 + 如果是文件流请求，则请求标志设置为`true`
 
@@ -4268,7 +4266,7 @@ public class FileTool {
   >
   > 2. 解析参数，返回 `StandardMultipartHttpServletRequest`类型
   >
-  >    ![image-20220830170830590](.\img\image-20220830170830590.png)
+  >    <img src="img\image-20220830170830590.png" style="zoom:100%;" /> 
 
 
 
@@ -4309,13 +4307,13 @@ public ResponseEntity<byte[]> download(@RequestParam("filename")String filename,
 
   > 内容包括：错误、HTTP状态码和异常消息的详细信息
   >
-  > ![image-20220831100857201](\img\image-20220831100857201.png)
+  > <img src="img\image-20220831100857201.png" style="zoom:100%;" /> 
 
 + 对于浏览器端，响应一个`Whitelable`错误视图，以HTML格式呈现数据
 
   > 内容包括：错误、HTTP状态码和异常消息的详细信息
   >
-  > ![image-20220831100739282](\img\image-20220831100739282.png)
+  > <img src="img\image-20220831100739282.png" style="zoom:100%;" /> 
 
 + 可以根据状态码自定义错误显示页面
 
@@ -4651,7 +4649,7 @@ public String basic_table(Model model) {
    >
    > b.判断DispatcherServlet中处理器异常解析器handlerExceptionResolvers是否存在，存在！***此处就是存放自定义异常解析器的位置，最后一定会返回一个ModelAndView***
    >
-   > ![image-20220831145843546](.\img\image-20220831145843546.png)
+   > <img src="img\image-20220831145843546.png" style="zoom:100%;" /> 
    >
    > c.遍历处理器异常解析器handlerExceptionResolvers，尝试解析异常
    >
@@ -4669,7 +4667,7 @@ public String basic_table(Model model) {
    >
    > + **进入`HandlerExceptionResolverComposite`处理器异常解析器集合中，顺序遍历解析异常**
    >
-   >   ![image-20220831150515645](\img\image-20220831150515645.png)
+   >   <img src="img\image-20220831150515645.png" style="zoom:100%;" /> 
    >
    >   > + `ExceptionHandlerExceptionResolver（用于处理@ExceptionHandler注解）`和`ResponseStatusExceptionResolver（用于处理@ResponseStatus注解）`无法解析
    >   >
@@ -4729,7 +4727,7 @@ public String basic_table(Model model) {
 
    **此步骤才是真正的发生/error请求并进行处理**
 
-   ![image-20220902112644118](.\img\image-20220902112644118.png)
+   <img src="img\image-20220902112644118.png" style="zoom:100%;" />
 
    ```java
    //StandardHostValve#throwable
@@ -4762,7 +4760,7 @@ public String basic_table(Model model) {
    >
    >  拦截路径：http://localhost:8080/error
    >
-   > ![image-20220901092757653](\img\image-20220901092757653.png)
+   > <img src="img\image-20220901092757653.png" style="zoom:100%;" /> 
    >
    > 开始向request存放数据(**均是tomcat底层做的**)，：
    >
@@ -4882,7 +4880,7 @@ public String basic_table(Model model) {
    >   > }
    >   > ```
    >   >
-   >   > ![image-20220901133355310](\img\image-20220901133355310-16620105374141.png)
+   >   > <img src="img\image-20220901133355310-16620105374141.png" style="zoom:100%;" /> 
    >   >
    >   > ```java
    >   > //如果没有支持的模板引擎的话，就开始读取springboot静态目录
@@ -4903,7 +4901,7 @@ public String basic_table(Model model) {
    >   > }
    >   > ```
    >   >
-   >   > ![image-20220901111848035](\img\image-20220901111848035.png)
+   >   > <img src="img\image-20220901111848035.png" style="zoom:100%;" /> 
    >   >
    >   > 
    >
@@ -4919,7 +4917,7 @@ public String basic_table(Model model) {
 
    <font color='red'>首先调用：`DefaultErrorAttributes`向request域中保存当前异常信息</font>
 
-   ![image-20220831145843546](.\img\image-20220831145843546.png)
+   <img src="img\image-20220831145843546.png" style="zoom:100%;" /> 
 
    <font color='yellow'>其次，这15种异常（见上面表格）会被`DefaultHandlerExceptionResolver`处理(本次不在内，返回null)</font>
 
@@ -4962,7 +4960,7 @@ public String basic_table(Model model) {
 
 #### 6、使得HandlerExceptionResolver可以处理异常（目的：返回ModelAndView）自己
 
-即使图中这三个异常解析器均生效：![image-20220831150515645](D:\JavaWork\SpringBoot\Note\img\image-20220831150515645-16620148015082.png)
+即使图中这三个异常解析器均生效：<img src="img\image-20220831150515645-16620148015082.png" style="zoom:100%;" /> 
 
 + ***ExceptionHandlerExceptionResolver*** ：用于处理`@ExceptionHandler`注解
 
@@ -5111,7 +5109,7 @@ public String basic_table(Model model) {
 
 借助Servlet3.0的底层原理，通过`ServletContextInitializer`的抽象类`RegistrationBean`的子类们实现：
 
-![image-20220902152419958](.\img\image-20220902152419958.png)
+<img src="img\image-20220902152419958.png" style="zoom:100%;" /> 
 
 > 底层原理都是`ServletContextInitializer`的`onStartup`方法在servletContext初始化前添加，所以也可以自己实现此接口添加
 
@@ -5162,7 +5160,7 @@ public class MyRegisterBeanConfig {
 >
 > **自动配置类中通过`DispatcherServletRegistrationBean`其实就是`ServletRegistrationBean(ServletContextInitializer)`注册到tomcat容器中**
 
-![image-20220902160934685](.\img\image-20220902160934685.png)
+<img src="img\image-20220902160934685.png" style="zoom:100%;" /> 
 
 > 类似web.xml中过滤器的先后为：在配置文件中的顺序
 >
@@ -5190,7 +5188,7 @@ public class MyRegisterBeanConfig {
 
 任意切换下面四种中的一个
 
-![image-20220905145923623](\img\image-20220905145923623.png)
+<img src="img\image-20220905145923623.png" style="zoom:100%;" /> 
 
 *pom.xml中排除默认的tomcat场景，引入自己需要的web容器*
 
@@ -5219,7 +5217,7 @@ public class MyRegisterBeanConfig {
 
 > 1. SpringBoot自动配置类**`ServletWebServerFactoryAutoConfiguration`**中引入了三种嵌入式服务器
 >
->    ​	![image-20220905145150110](.\img\image-20220905145150110.png)
+>    ​	<img src="img\image-20220905145150110.png" style="zoom:100%;" /> 
 >
 > 2. 然后根据pom文件依赖中引入的场景starter，判断加载哪一个Web服务器（因为我们引入的是tomcat_starter，所以给容器注入tomcat服务器）
 >
@@ -5387,7 +5385,7 @@ public class CustomizerWebServerFactoryAttributes implements WebServerFactoryCus
 
 > `spring-boot-starter-data-jdbc`场景帮我们导入了：HikariCP数据库连接池，spring的jdbc等
 >
-> ![image-20220907112120697](.\img\image-20220907112120697.png)
+> <img src="img\image-20220907112120697.png" style="zoom:100%;" /> 
 >
 > 会发现没有导入数据库驱动，这是因为官方布知道我们使用的是什么数据库，所以需要自己手动导入
 
@@ -5550,7 +5548,7 @@ https://github.com/alibaba/druid
   >   ```java
   >   //Druid底层赋值原理
   >   configFromPropety(System.getProperties());
-  >                   
+  >                       
   >   /*
   >   	所以可以通过jvm的启动参数来配置数据库连接池信息：
   >   	-Ddruid.url=jdbc:mysql:///ssm_crdu -Ddruid.username=root -Ddruid.password=123456 -Ddruid.driverClassName=com.mysql.jdbc.Driver
@@ -5585,7 +5583,7 @@ public ServletRegistrationBean<StatViewServlet> DruidStatView() {
 }
 ```
 
-![image-20220908151056746](.\img\image-20220908151056746.png)
+<img src="img\image-20220908151056746.png" style="zoom:100%;" /> 
 
 ***
 
@@ -5608,7 +5606,7 @@ public FilterRegistrationBean<WebStatFilter> DruidWebStatFilter() {
 }
 ```
 
-![image-20220908153151374](.\img\image-20220908153151374.png)
+<img src="img\image-20220908153151374.png" style="zoom:100%;" /> 
 
 ***
 
@@ -5628,7 +5626,7 @@ public FilterRegistrationBean<WebStatFilter> DruidWebStatFilter() {
     }
 ```
 
-![image-20220908154022104](.\img\image-20220908154022104.png)
+<img src="img\image-20220908154022104.png" style="zoom:100%;" /> 
 
 
 
@@ -5745,7 +5743,7 @@ public FilterRegistrationBean<WebStatFilter> DruidWebStatFilter() {
   >
   > 5. 运行测试
   >
-  >    ![image-20220909102545055](.\img\image-20220909102545055.png)
+  >    <img src="img\image-20220909102545055.png" style="zoom:100%;" /> 
 
 ***Aspect、Advisor、Advice、Pointcut的关系***
 
@@ -5757,7 +5755,7 @@ public FilterRegistrationBean<WebStatFilter> DruidWebStatFilter() {
 >
 > [<font color='red'>详细参考：Advice_Pointcut_Aspect_JoinPoint_Advisor_ - SegmentFault 思否.pdf</font>](Advice_Pointcut_Aspect_JoinPoint_Advisor_ - SegmentFault 思否.pdf)
 >
-> ![aop术语关系](.\img\aop术语关系.png)
+> <img src="img\aop术语关系.png" style="zoom:100%;" />
 
 
 
@@ -5882,7 +5880,7 @@ https://github.com/mybatis/spring-boot-starter
 
 每次导入依赖都要先看看他干了什么事情：
 
-![image-20220909155552403](.\img\image-20220909155552403.png)
+<img src="img\image-20220909155552403.png" style="zoom:100%;" /> 
 
 > 每一个autoConfiguration在`META-INF`目录下都有一个`spring.factories`配置文件，里面存放着当前包下需要启用的自动配置类：
 >
@@ -6023,7 +6021,7 @@ spring中引入mybatis框架的步骤：
 
 + 运行测试
 
-  > ![image-20220913153345983](.\img\image-20220913153345983.png)
+  > <img src="img\image-20220913153345983.png" style="zoom:100%;" /> 
 
 
 
@@ -6084,7 +6082,7 @@ spring中引入mybatis框架的步骤：
 
 + 运行测试
 
-  > ![image-20220913160723505](.\img\image-20220913160723505.png)
+  > <img src="img\image-20220913160723505.png" style="zoom:100%;" /> 
 
 ***
 
@@ -6260,7 +6258,7 @@ mybatis-plus官网：https://baomidou.com/
    }
    ```
 
-![image-20220914115237911](.\img\image-20220914115237911.png)
+<img src="img\image-20220914115237911.png" style="zoom:100%;" /> 
 
 ##### 3、CRUD功能
 
@@ -6330,20 +6328,20 @@ mybatis-plus官网：https://baomidou.com/
 >   ```java
 >   @GetMapping({"/dynamic_table"})//查询
 >   public String dynamic_table(@RequestParam(name = "pn",defaultValue = "1") Long pn, Model model) {
->               
+>                   
 >       /**
 >        *  分页查询
 >        *      参数1为：page分页
 >        *      参数2为：wrapper查询条件
 >        */
 >       Page<User> page = userService.page(new Page<>(pn, 2L), null);
->               
+>                   
 >       page.hasPrevious();
 >       page.hasNext();
 >   
 >   
 >       log.info("uri = dynamic_table\n");
->                           
+>                                   
 >       model.addAttribute("nowUri","dynamic_table");
 >       model.addAttribute("page",page);
 >       return "table/dynamic_table";
@@ -6431,7 +6429,7 @@ mybatis-plus官网：https://baomidou.com/
   </dependency>
   ```
 
-  > ![image-20220915145735705](.\img\image-20220915145735705.png)
+  > <img src="img\image-20220915145735705.png" style="zoom:100%;" /> 
 
 + yaml文中配置redis连接属性
 
@@ -6465,7 +6463,7 @@ mybatis-plus官网：https://baomidou.com/
   > }
   > ```
   >
-  > ![image-20220916103420455](.\img\image-20220916103420455.png)
+  > <img src="img\image-20220916103420455.png" style="zoom:100%;" /> 
 
 
 
@@ -6499,7 +6497,7 @@ mybatis-plus官网：https://baomidou.com/
 >
 > 3. 连接工厂两个子类：
 >
->    ![image-20220916104121348](.\img\image-20220916104121348.png)
+>    <img src="img\image-20220916104121348.png" style="zoom:100%;" />
 
 #### d）***Redis自动配置原理：RedisAutoConfiguration***
 
@@ -6553,7 +6551,7 @@ mybatis-plus官网：https://baomidou.com/
 
 + 测试
 
-  ![image-20220916112536876](.\img\image-20220916112536876.png)
+  <img src="img\image-20220916112536876.png" style="zoom:100%;" /> 
 
 
 
@@ -6663,7 +6661,7 @@ mybatis-plus官网：https://baomidou.com/
 
 **Junit Vintage：**由于JUnit已经发展多年，为了照顾老的项目，JUnit Vintage提供了兼容Junit4.x，Junit3.x的测试引擎。
 
-![image-20220916153703620](.\img\image-20220916153703620.png)
+<img src="img\image-20220916153703620.png" style="zoom:100%;" /> 
 
 **注意：**SpringBoot2.4以上版本移除了默认对**Junit Vintage**的依赖，所以如果需要兼容JUnit 4需要自行引入**Junit Vintage**（否则不能使用JUinit4的`@Test`）
 
@@ -6685,7 +6683,7 @@ mybatis-plus官网：https://baomidou.com/
 > </dependency>
 > ```
 
-![image-20220916154310236](.\img\image-20220916154310236.png)
+<img src="img\image-20220916154310236.png" style="zoom:100%;" /> 
 
 ### 2、使用JUnit 5
 
@@ -6782,7 +6780,7 @@ public class Junit5Test {
 }
 ```
 
-![image-20220916162113564](.\img\image-20220916162113564.png)
+<img src="img\image-20220916162113564.png" style="zoom:100%;" /> 
 
 
 
@@ -6823,7 +6821,7 @@ public class Junit5Test {
 > }
 > ```
 >
-> ![image-20220919094759290](.\img\image-20220919094759290.png)
+> <img src="img\image-20220919094759290.png" style="zoom:100%;" /> 
 
 #### 4.2、数组断言
 
@@ -6838,7 +6836,7 @@ void testArrayAssertions() {
 }
 ```
 
-![image-20220919100319842](.\img\image-20220919100319842.png)
+<img src="img\image-20220919100319842.png" style="zoom:100%;" /> 
 
 #### 4.3、组合断言
 
@@ -6873,7 +6871,7 @@ void testExceptionAssertions(){
 }
 ```
 
-![image-20220919102556195](.\img\image-20220919102556195.png)
+<img src="img\image-20220919102556195.png" style="zoom:100%;" /> 
 
 #### 4.5、超时断言
 
@@ -6889,7 +6887,7 @@ void testTimeOutAssertions() {
 }
 ```
 
-![image-20220919103240369](.\img\image-20220919103240369.png)
+<img src="img\image-20220919103240369.png" style="zoom:100%;" /> 
 
 #### 4.6、快速失败
 
@@ -6902,7 +6900,7 @@ void testFail() {
 }
 ```
 
-![image-20220919103903944](.\img\image-20220919103903944.png)
+<img src="img\image-20220919103903944.png" style="zoom:100%;" /> 
 
 
 
@@ -6923,7 +6921,7 @@ void testAssumptions() {
 }
 ```
 
-![image-20220919105746054](img\image-20220919105746054.png)
+<img src="img\image-20220919105746054.png" style="zoom:100%;" /> 
 
 
 
@@ -7026,7 +7024,7 @@ public class TestingAStackDemo {
 }
 ```
 
-![image-20220919113106273](img\image-20220919113106273.png)
+<img src="img\image-20220919113106273.png" style="zoom:100%;" /> 
 
 
 
@@ -7063,7 +7061,7 @@ return Stream.of("apple","banana");
 }
 ```
 
-![image-20220919133003373](img\image-20220919133003373.png)
+<img src="img\image-20220919133003373.png" style="zoom:100%;" /> 
 
 
 
@@ -7096,7 +7094,7 @@ return Stream.of("apple","banana");
 
 SpringBoot 1 内部引入的就是Actuator 1版本，SpringBoot 2 内部引入的是就是Actuator 2版本。
 
-![image-20220919135256222](img\image-20220919135256222.png)
+<img src="img\image-20220919135256222.png" style="zoom:100%;" /> 
 
 #### 1.3、使用Spring Boot Actuator
 
@@ -7114,7 +7112,7 @@ SpringBoot 1 内部引入的就是Actuator 1版本，SpringBoot 2 内部引入�
   > </dependency>
   > ```
   >
-  > ![image-20220919140730202](img\image-20220919140730202.png)
+  > <img src="img\image-20220919140730202.png" style="zoom:100%;" /> 
 
 + 启动当前应用，即可访问Actuator各个监控项
 
@@ -7124,9 +7122,9 @@ SpringBoot 1 内部引入的就是Actuator 1版本，SpringBoot 2 内部引入�
 
   > 因为所有的Endpoint（除了health）默认都是暴露到JMX（即java的jconsole中），为了方便查看，开启暴露到HTTP
   >
-  > ![image-20220919144513334](\img\image-20220919144513334.png)
+  > <img src="img\image-20220919144513334.png" style="zoom:100%;" /> 
   >
-  > ![image-20220919144747410](\img\image-20220919144747410.png)
+  > <img src="img\image-20220919144747410.png" style="zoom:100%;" /> 
   >
   > ```yaml
   > management:
@@ -7229,7 +7227,7 @@ management:
       show-details: always
 ```
 
-![image-20220919152343006](img\image-20220919152343006.png)
+<img src="img\image-20220919152343006.png" style="zoom:100%;" /> 
 
 #### 2.3、Metrics Endpoint
 
@@ -7239,8 +7237,7 @@ management:
 + 简化核心Metrics开发
 + 添加自定义Metrics或者扩展已有Metrics
 
-![image-20220919153003391](\img\image-20220919153003391.png)
-
+<img src="img\image-20220919153003391.png" style="zoom:100%;" /> 
 ```json
 // 所有默认可以采集的指标信息
 {
@@ -7336,7 +7333,7 @@ management:
 
 + 访问`http://localhost:8080/actuator/health`，即可看到自定义Health Endpoint成员
 
-  ![image-20220919163019946](\img\image-20220919163019946.png)
+  <img src="img\image-20220919163019946.png" style="zoom:100%;" /> 
 
 
 
@@ -7383,7 +7380,7 @@ management:
 
 + 测试访问
 
-  > ![image-20220919170856073](img\image-20220919170856073.png)
+  > <img src="img\image-20220919170856073.png" style="zoom:100%;" /> 
 
 
 
@@ -7441,11 +7438,11 @@ management:
 >
 > 访问地址：[localhost:8080/actuator/metrics](http://localhost:8080/actuator/metrics)
 >
-> ![image-20220920102907470](img\image-20220920102907470.png)
+> <img src="img\image-20220920102907470.png" style="zoom:100%;" /> 
 >
 > 发送对应请求，发现value值增加了：
 >
-> ![image-20220920103222206](img\image-20220920103222206.png)
+> <img src="img\image-20220920103222206.png" style="zoom:100%;" /> 
 
 **方法 2：配置类中添加组件方式**
 
@@ -7457,7 +7454,7 @@ management:
 > }
 > ```
 >
-> ![image-20220920104116571](img\image-20220920104116571.png)
+> <img src="img\image-20220920104116571.png" style="zoom:100%;" /> 
 
 
 
@@ -7492,7 +7489,7 @@ management:
 >
 > + 访问地址：[localhost:8080/actuator](http://localhost:8080/actuator)
 >
->   ![image-20220920105647636](img\image-20220920105647636.png)
+>   <img src="img\image-20220920105647636.png" style="zoom:100%;" /> 
 
 
 
@@ -7534,7 +7531,7 @@ management:
 >   ```properties
 >   # 表示监控系统的网址就是 http://localhost:8888，客户端暴露监控数据到这儿
 >   spring.boot.admin.client.url=http://localhost:8888
->   
+>       
 >   # 一定要开启以web方式暴露所有
 >   # management.endpoints.web.exposure.include=*  
 >   
@@ -7547,7 +7544,7 @@ management:
 >
 > + 启动客户端（自己的项目）和监控系统项目
 >
->   ![image-20220920144235467](img\image-20220920144235467.png)
+>   <img src="img\image-20220920144235467.png" style="zoom:100%;" /> 
 
 
 
@@ -7573,13 +7570,13 @@ Spring Core Features ：https://docs.spring.io/spring-boot/docs/current/referenc
 
 ***方法1：默认配置文件指定环境profile***
 
-![image-20220920153905454](img\image-20220920153905454.png)
+<img src="img\image-20220920153905454.png" style="zoom:100%;" /> 
 
 ***方法2：已经打好包的命令行指定***
 
 <font color='red'>注意，此方法为方法1的延续，即必须存在指定的环境profile配置文件。</font>
 
-![image-20220920154752159](img\image-20220920154752159.png)
+<img src="img\image-20220920154752159.png" style="zoom:100%;" /> 
 
 #### 1.2、@Profile 根据环境装载ioc组件
 
@@ -7639,7 +7636,7 @@ public class Worker implements Person{
 >
 > + 访问测试
 >
->   ![image-20220920162527315](img\image-20220920162527315.png)
+>   <img src="img\image-20220920162527315.png" style="zoom:100%;" /> 
 
 
 
@@ -7742,7 +7739,7 @@ public class Worker implements Person{
 
 + starter-pom中引入所有的依赖，包括xxxx-autoconfigure包
 
-  ![image-20220921101047348](img\image-20220921101047348.png)
+  <img src="img\image-20220921101047348.png" style="zoom:100%;" /> 
 
 + autoconfiguration包中配置使用<font color='red'>***META-INF/spring.factories***</font>中EnableAutoConfiguration的值，使得项目启动时加载指定的自动配置类
 
@@ -7855,7 +7852,7 @@ public class Worker implements Person{
 >
 > 6. 使用Maven进行打包，并安装到本地仓库中。`ly-hello-spring-boot-starter-autoconfigure`项目目录结构结构如下：
 >
->    ![image-20220921145639788](img\image-20220921145639788.png)
+>    <img src="img\image-20220921145639788.png" style="zoom:100%;" /> 
 >
 > 7. 使用Maven创建场景启动器starter`ly-hello-spring-boot-satrter`（starter就是一个pom文件，所以用Maven创建工程即可）,并导入上一个工程（自动配置项目）的依赖。pom文件如下
 >
@@ -7890,7 +7887,7 @@ public class Worker implements Person{
 >
 > 8. starter就是一个pom文件，所以结束了，使用Maven 的install将其打包并安装到本地仓库。`ly-hello-spring-boot-starter`项目结构如下：
 >
->    ![image-20220921150234901](img\image-20220921150234901.png)
+>    <img src="img\image-20220921150234901.png" style="zoom:100%;" /> 
 >
 > 9. 终于到这一步了，使用Spring Initializer创建一个测试项目`boot-09-hello-test`，勾选spring web依赖即可
 >
@@ -7906,7 +7903,7 @@ public class Worker implements Person{
 >
 >     依赖关系如下：
 >
->     ![image-20220921150658422](img\image-20220921150658422.png)
+>     <img src="img\image-20220921150658422.png" style="zoom:100%;" /> 
 >
 > 11. 创建一个测试controller，使用自动配置的`HelloService`
 >
@@ -7932,7 +7929,7 @@ public class Worker implements Person{
 >
 > 13. 启动服务测试
 >
->     ![image-20220921151006302](img\image-20220921151006302.png)
+>     <img src="img\image-20220921151006302.png" style="zoom:100%;" /> 
 
 
 
@@ -7987,7 +7984,7 @@ public static ConfigurableApplicationContext run(Class<?>[] primarySources, Stri
 >
 >   > 原理：程序运行到当前代码处，内存中 所有堆栈类从上向下遍历，如果哪个类有main方法那么这个类就是主程序所在的类
 >   >
->   > ![image-20220921155806657](img\image-20220921155806657.png)
+>   > <img src="img\image-20220921155806657.png" style="zoom:100%;" /> 
 
 
 
@@ -8027,7 +8024,7 @@ public static ConfigurableApplicationContext run(Class<?>[] primarySources, Stri
 
 + 打印spring的banner图标
 
-  ![image-20220922135956215](img\image-20220922135956215.png)
+  <img src="img\image-20220922135956215.png" style="zoom:100%;" /> 
 
 + <font color='red'>***创建ioc容器即：ApplicationContext（Spring的熟悉流程）***</font>
 
